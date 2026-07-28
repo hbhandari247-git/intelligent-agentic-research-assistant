@@ -39,23 +39,10 @@ def retrieve_documents(
         better semantic matches.
     """
 
-    retrieved_documents = vector_store.similarity_search_with_score(
+    return vector_store.similarity_search_with_score(
         question,
         k=TOP_K,
     )
-
-    print(f"\n🔍 Searching for: {question}")
-    print("📊 Retrieved Results")
-
-    for index, (document, score) in enumerate(
-        retrieved_documents,
-        start=1,
-    ):
-        print(f"\nResult {index}")
-        print(f"Score   : {score:.4f}")
-        print(f"Preview : {document.page_content[:100]}...")
-
-    return retrieved_documents
 
 
 def get_best_score(

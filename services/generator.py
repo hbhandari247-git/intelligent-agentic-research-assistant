@@ -5,7 +5,6 @@ This module builds the retrieval context
 and generates answers using the language model.
 """
 
-from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 
@@ -47,25 +46,22 @@ generation_chain = (
 
 
 def build_context(
-    results: list[tuple[Document, float]],
+    chunks: list[str],
 ) -> str:
     """
     Create a single context string
-    from the retrieved document chunks.
+    from retrieved text chunks.
 
     Args:
-        results:
-            Retrieved documents with scores.
+        chunks:
+            Retrieved text chunks.
 
     Returns:
         A single context string for
         the language model.
     """
 
-    return "\n\n".join(
-        document.page_content
-        for document, _ in results
-    )
+    return "\n\n".join(chunks)
 
 
 def generate_answer(
@@ -79,7 +75,7 @@ def generate_answer(
     Args:
         context:
             Context built from the
-            retrieved documents.
+            retrieved text.
 
         question:
             The user's question.

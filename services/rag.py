@@ -57,8 +57,13 @@ def answer_from_pdf(
     ):
         return None
 
+    chunks = [
+        document.page_content
+        for document, _ in retrieved_documents
+    ]
+
     context = build_context(
-        retrieved_documents,
+        chunks,
     )
 
     return generate_answer(

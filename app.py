@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from services.pipeline import initialize_pipeline
-from services.rag import answer_from_pdf
+from services.router import route_question
 
 
 def main() -> None:
@@ -33,16 +33,12 @@ def main() -> None:
         if not question:
             continue
 
-        answer = answer_from_pdf(
+        answer = route_question(
             vector_store,
             question,
         )
 
-        if answer is None:
-            print("\n🌐 This question is outside the PDF.")
-            print("🔜 Tavily Web Search will be integrated next.\n")
-        else:
-            print(f"\n🤖 {answer}\n")
+        print(f"\n🤖 {answer}\n")
 
 
 if __name__ == "__main__":

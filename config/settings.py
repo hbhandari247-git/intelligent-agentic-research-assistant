@@ -42,3 +42,9 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 MODEL_NAME = "openai/gpt-oss-20b"
 
 TEMPERATURE = 0
+
+# -----------------------------
+# Web Search
+# -----------------------------
+
+TAVILY_MAX_RESULTS = 3
