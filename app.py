@@ -5,6 +5,9 @@ Intelligent Agentic Research Assistant.
 
 from dotenv import load_dotenv
 
+# Load environment variables BEFORE importing services
+load_dotenv()
+
 from services.pipeline import initialize_pipeline
 from services.rag import answer_from_pdf
 
@@ -14,9 +17,6 @@ def main() -> None:
     Start the research assistant.
     """
 
-    # Load environment variables.
-    load_dotenv()
-
     # Initialize the application.
     vector_store = initialize_pipeline()
 
@@ -24,7 +24,6 @@ def main() -> None:
     print("Type 'exit' to quit.\n")
 
     while True:
-
         question = input("You: ").strip()
 
         if question.lower() == "exit":
