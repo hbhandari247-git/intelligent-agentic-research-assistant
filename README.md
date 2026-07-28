@@ -2,12 +2,13 @@
 
 > **Building an AI Research Assistant from the ground up—one version at a time.**
 
-A production-oriented AI application built with **Python, LangChain, ChromaDB, HuggingFace, and Groq**, following modern software engineering principles while progressively evolving from a Retrieval-Augmented Generation (RAG) system into a fully autonomous **Agentic AI Research Assistant**.
+A production-oriented AI application built with **Python, LangChain, ChromaDB, HuggingFace, Groq, and Tavily**, following modern software engineering principles while progressively evolving from a Retrieval-Augmented Generation (RAG) system into a fully autonomous **Agentic AI Research Assistant**.
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
 ![LangChain](https://img.shields.io/badge/LangChain-LCEL-green)
 ![ChromaDB](https://img.shields.io/badge/Vector%20Database-Chroma-orange)
 ![Groq](https://img.shields.io/badge/LLM-Groq-red)
+![Tavily](https://img.shields.io/badge/Search-Tavily-purple)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 ![Status](https://img.shields.io/badge/Status-Active-success)
 
@@ -30,7 +31,10 @@ Each release introduces a meaningful capability, transforming the project from a
 The current implementation provides:
 
 * 📄 Question answering over PDF documents
-* 🔍 Semantic retrieval using Chroma Vector Database
+* 🌐 AI-powered web search using Tavily
+* 🔀 Hybrid Retrieval (PDF + Web)
+* 🧠 Intelligent query routing
+* 🔍 Semantic retrieval using ChromaDB
 * 🧠 HuggingFace Sentence Transformer embeddings
 * ⚡ Groq LLM integration
 * 🏗️ Modular service-oriented architecture
@@ -44,22 +48,21 @@ The current implementation provides:
 
 # 🎯 Current Release
 
-## **v2.2.1 – Stable Modular PDF RAG**
+## **v2.3.0 – Hybrid Retrieval**
 
 ### Highlights
 
-* Modular application architecture
-* PDF ingestion pipeline
-* Recursive text chunking
-* Semantic vector search
-* Context relevance validation
-* Prompt-based response generation
-* Groq-powered inference
-* Clean startup architecture
-* Centralized configuration
-* Centralized environment loading
+* 📄 PDF Retrieval-Augmented Generation (RAG)
+* 🌐 Tavily Web Search integration
+* 🔀 Intelligent PDF-first query routing
+* 🤖 Shared LLM generation pipeline
+* 🏗️ Modular service-oriented architecture
+* ⚙️ Centralized configuration management
+* 🔐 Centralized environment initialization
+* 📦 Persistent Chroma vector database
+* 📝 Fully typed and documented codebase
 
-This release focuses on creating a solid architectural foundation before introducing hybrid retrieval and agentic workflows.
+This release introduces **Hybrid Retrieval**, enabling the assistant to answer questions from indexed PDF documents while automatically falling back to AI-powered web search whenever the requested information is unavailable in the local knowledge base.
 
 ---
 
@@ -72,30 +75,25 @@ This release focuses on creating a solid architectural foundation before introdu
                       app.py
                           │
                           ▼
-                 load_dotenv()
+                  route_question()
                           │
+               ┌──────────┴──────────┐
+               │                     │
+               ▼                     ▼
+        answer_from_pdf()     answer_from_web()
+               │                     │
+               ▼                     ▼
+     retrieve_documents()   retrieve_from_web()
+               │                     │
+               └──────────┬──────────┘
                           ▼
-              initialize_pipeline()
-                          │
+                  build_context()
                           ▼
-                 answer_from_pdf()
-                          │
+                  generate_answer()
                           ▼
-             retrieve_documents()
-                          │
+                      Groq LLM
                           ▼
-           has_relevant_context()
-                 │             │
-        Relevant         Not Relevant
-            │                  │
-            ▼                  ▼
-    build_context()     (Future)
-            │        Tavily Web Search
-            ▼
-    generate_answer()
-            │
-            ▼
-      Groq LLM Response
+                     Final Answer
 ```
 
 ---
@@ -116,15 +114,21 @@ intelligent-agentic-research-assistant/
 │
 ├── services/
 │   ├── document_loader.py
-│   ├── text_splitter.py
 │   ├── embeddings.py
-│   ├── vector_store.py
-│   ├── retriever.py
 │   ├── generator.py
 │   ├── llm.py
-│   ├── rag.py
 │   ├── pipeline.py
+│   ├── rag.py
+│   ├── retriever.py
+│   ├── router.py
+│   ├── text_splitter.py
+│   ├── vector_store.py
+│   ├── web_rag.py
 │   └── web_search.py
+│
+├── tests/
+│   ├── __init__.py
+│   └── test_tavily.py
 │
 ├── requirements.txt
 ├── README.md
@@ -144,6 +148,7 @@ intelligent-agentic-research-assistant/
 | ChromaDB    | Vector database           |
 | HuggingFace | Embedding generation      |
 | Groq        | Large Language Model      |
+| Tavily      | AI-powered web retrieval  |
 | PyPDFLoader | PDF document processing   |
 
 ---
@@ -186,6 +191,7 @@ Create a `.env` file:
 
 ```env
 GROQ_API_KEY=your_groq_api_key
+TAVILY_API_KEY=your_tavily_api_key
 ```
 
 ## Run the Application
@@ -201,11 +207,13 @@ python app.py
 ```text
 🤖 Intelligent Agentic Research Assistant
 
-You:
-What is self-attention?
+You: What is self-attention?
 
-Assistant:
-Self-attention allows each token to attend to every other token in the sequence, enabling Transformers to model long-range dependencies efficiently.
+🤖 Self-attention is an attention mechanism that enables each token in a sequence to attend to every other token, allowing Transformer models to capture long-range dependencies efficiently.
+
+You: Who won the FIFA World Cup in 2022?
+
+🤖 Argentina won the 2022 FIFA World Cup after defeating France in the final on penalties following a 3–3 draw.
 ```
 
 ---
@@ -227,6 +235,7 @@ Configurable parameters include:
 * Chunk overlap
 * Retrieval Top-K
 * Similarity threshold
+* Tavily search results
 * LLM model
 * Temperature
 
@@ -234,14 +243,15 @@ Configurable parameters include:
 
 # 🧠 How It Works
 
-1. Load the PDF document.
-2. Split it into semantic chunks.
-3. Generate embeddings.
-4. Store embeddings in ChromaDB.
-5. Retrieve relevant context.
-6. Validate retrieval quality.
-7. Build the prompt context.
-8. Generate the final response using Groq.
+1. Initialize the PDF retrieval pipeline.
+2. Accept a user question.
+3. Route the question to the PDF retrieval workflow.
+4. Retrieve the most relevant document chunks.
+5. Check whether sufficient context exists.
+6. If relevant, build the context and generate the answer.
+7. Otherwise, automatically perform a Tavily web search.
+8. Build context from web search results.
+9. Generate the final response using Groq.
 
 ---
 
@@ -249,6 +259,7 @@ Configurable parameters include:
 
 | Version    | Description                                                                  |
 | ---------- | ---------------------------------------------------------------------------- |
+| **v2.3.0** | Hybrid Retrieval with PDF-first routing and Tavily web fallback              |
 | **v2.2.1** | Centralized environment initialization and startup architecture improvements |
 | **v2.2.0** | Initial stable modular PDF RAG implementation                                |
 
@@ -256,53 +267,52 @@ Configurable parameters include:
 
 # 🗺️ Roadmap
 
-## ✅ v2.2.1
+## ✅ v2.3.0
 
-* Stable Modular PDF RAG
-* Clean Service-Oriented Architecture
-* ChromaDB Integration
-* HuggingFace Embeddings
-* Groq Integration
-* Centralized Configuration
-* Centralized Environment Initialization
-
----
-
-## 🚧 v2.3.0
-
+* Hybrid Retrieval
 * Tavily Search Integration
-* Hybrid Retrieval (PDF + Web)
 * Intelligent Query Routing
+* Shared LLM Generation Pipeline
+* Modular Web RAG Workflow
 
 ---
 
 ## 🚀 v2.4.0
+
+* Retrieval Quality Improvements
+* Better Routing Decisions
+* Source Attribution
+* Enhanced Context Selection
+
+---
+
+## 🚀 v2.5.0
 
 * Conversation Memory
 * Context-Aware Responses
 
 ---
 
-## 🚀 v2.5.0
+## 🚀 v2.6.0
 
 * Streaming Responses
 
 ---
 
-## 🚀 v2.6.0
+## 🚀 v2.7.0
 
 * Multi-PDF Knowledge Base
 
 ---
 
-## 🚀 v2.7.0
+## 🚀 v2.8.0
 
 * Tool Calling
 * ReAct Agents
 
 ---
 
-## 🚀 v2.8.0
+## 🚀 v2.9.0
 
 * LangGraph Workflows
 
@@ -329,17 +339,17 @@ This repository serves as a practical exploration of modern AI application devel
 Topics covered throughout the project include:
 
 * Retrieval-Augmented Generation (RAG)
+* Hybrid Retrieval
 * Semantic Search
 * Vector Databases
 * Prompt Engineering
 * LangChain & LCEL
 * Software Architecture
-* Hybrid Retrieval
 * AI Agents
 * LangGraph
 * Model Context Protocol (MCP)
 
-Every release introduces a new concept while preserving a clean, maintainable architecture.
+Every release introduces a new capability while preserving a clean, maintainable, and production-oriented architecture.
 
 ---
 
@@ -369,7 +379,7 @@ Your support helps others discover the project and motivates future development.
 
 **Himanshu Bhandari**
 
-AI Engineer passionate about building production-quality AI systems, Retrieval-Augmented Generation (RAG) applications, Agentic AI workflows, and scalable software architectures.
+AI Engineer passionate about building production-quality AI systems, Retrieval-Augmented Generation (RAG) applications, Hybrid AI architectures, Agentic AI workflows, and scalable software engineering solutions.
 
 ---
 
