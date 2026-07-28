@@ -1,6 +1,8 @@
 # 🤖 Intelligent Agentic Research Assistant
 
-> **A modular Retrieval-Augmented Generation (RAG) system built with LangChain, ChromaDB, HuggingFace Embeddings, and Groq — designed to evolve into a fully autonomous Agentic AI Research Assistant.**
+> **Building an AI Research Assistant from the ground up—one version at a time.**
+
+A production-oriented AI application built with **Python, LangChain, ChromaDB, HuggingFace, and Groq**, following modern software engineering principles while progressively evolving from a Retrieval-Augmented Generation (RAG) system into a fully autonomous **Agentic AI Research Assistant**.
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
 ![LangChain](https://img.shields.io/badge/LangChain-LCEL-green)
@@ -11,81 +13,89 @@
 
 ---
 
-## 🌟 Overview
+# 🌟 Vision
 
-Most RAG tutorials end with a simple **"Chat with PDF"** application.
+Large Language Models become truly useful when they can **retrieve information, reason about it, and interact with external tools**.
 
-This project takes a different approach.
+This repository documents that journey.
 
-The goal is to build a **production-style AI application** step by step, following clean software engineering practices while gradually introducing modern AI concepts such as Retrieval-Augmented Generation (RAG), Hybrid Search, Agentic Workflows, Multi-Agent Systems, and the Model Context Protocol (MCP).
+Rather than building a single "Chat with PDF" application, this project incrementally develops a production-style AI assistant while applying clean architecture, modular design, and software engineering best practices.
 
-The current version implements a clean, modular RAG architecture capable of answering questions from PDF documents using semantic search.
+Each release introduces a meaningful capability, transforming the project from a simple RAG system into a complete autonomous research assistant.
 
 ---
 
-# ✨ Features
+# 🚀 Current Capabilities
 
-* 📄 Ask questions about PDF documents
-* 🔍 Semantic search with Chroma Vector Database
+The current implementation provides:
+
+* 📄 Question answering over PDF documents
+* 🔍 Semantic retrieval using Chroma Vector Database
 * 🧠 HuggingFace Sentence Transformer embeddings
 * ⚡ Groq LLM integration
 * 🏗️ Modular service-oriented architecture
 * ⚙️ Centralized configuration management
+* 🔐 Centralized environment initialization
 * 📦 Persistent vector database
-* 📝 Type hints and comprehensive documentation
-* 🔄 Easily extensible for future AI capabilities
+* 📝 Fully typed and documented codebase
+* 🔄 Extensible architecture for future AI capabilities
 
 ---
 
-# 🎯 Current Version
+# 🎯 Current Release
 
-## **v2.2.0 – Modular PDF RAG**
+## **v2.2.1 – Stable Modular PDF RAG**
 
-### Implemented
+### Highlights
 
-* ✅ Modular project architecture
-* ✅ PDF document ingestion
-* ✅ Recursive text chunking
-* ✅ HuggingFace embeddings
-* ✅ Chroma vector database
-* ✅ Semantic document retrieval
-* ✅ Context validation
-* ✅ Prompt-based answer generation
-* ✅ Groq LLM integration
-* ✅ Configurable application settings
+* Modular application architecture
+* PDF ingestion pipeline
+* Recursive text chunking
+* Semantic vector search
+* Context relevance validation
+* Prompt-based response generation
+* Groq-powered inference
+* Clean startup architecture
+* Centralized configuration
+* Centralized environment loading
+
+This release focuses on creating a solid architectural foundation before introducing hybrid retrieval and agentic workflows.
 
 ---
 
 # 🏛️ System Architecture
 
 ```text
-                         User Question
-                               │
-                               ▼
-                           app.py
-                               │
-                               ▼
-                  initialize_pipeline()
-                               │
-                               ▼
-                     answer_from_pdf()
-                               │
-                               ▼
-                 retrieve_documents()
-                               │
-                               ▼
-               has_relevant_context()
-                      │               │
-             Relevant          Not Relevant
-                  │                    │
-                  ▼                    ▼
-          build_context()      (Future)
-                  │         Tavily Search
-                  ▼
-          generate_answer()
-                  │
-                  ▼
-            Groq LLM Response
+                    User Question
+                          │
+                          ▼
+                      app.py
+                          │
+                          ▼
+                 load_dotenv()
+                          │
+                          ▼
+              initialize_pipeline()
+                          │
+                          ▼
+                 answer_from_pdf()
+                          │
+                          ▼
+             retrieve_documents()
+                          │
+                          ▼
+           has_relevant_context()
+                 │             │
+        Relevant         Not Relevant
+            │                  │
+            ▼                  ▼
+    build_context()     (Future)
+            │        Tavily Web Search
+            ▼
+    generate_answer()
+            │
+            ▼
+      Groq LLM Response
 ```
 
 ---
@@ -98,16 +108,13 @@ intelligent-agentic-research-assistant/
 ├── app.py
 │
 ├── config/
-│   ├── __init__.py
 │   └── settings.py
 │
 ├── data/
-│   └── Attention_is_All_You_Need.pdf
 │
 ├── db/
 │
 ├── services/
-│   ├── __init__.py
 │   ├── document_loader.py
 │   ├── text_splitter.py
 │   ├── embeddings.py
@@ -121,6 +128,7 @@ intelligent-agentic-research-assistant/
 │
 ├── requirements.txt
 ├── README.md
+├── LICENSE
 └── .env
 ```
 
@@ -128,21 +136,21 @@ intelligent-agentic-research-assistant/
 
 # ⚙️ Technology Stack
 
-| Technology  | Purpose                       |
-| ----------- | ----------------------------- |
-| Python      | Programming Language          |
-| LangChain   | LLM Application Framework     |
-| LCEL        | LangChain Expression Language |
-| ChromaDB    | Vector Database               |
-| HuggingFace | Embedding Model               |
-| Groq        | Large Language Model          |
-| PyPDFLoader | PDF Processing                |
+| Technology  | Purpose                   |
+| ----------- | ------------------------- |
+| Python      | Core programming language |
+| LangChain   | LLM application framework |
+| LCEL        | Pipeline orchestration    |
+| ChromaDB    | Vector database           |
+| HuggingFace | Embedding generation      |
+| Groq        | Large Language Model      |
+| PyPDFLoader | PDF document processing   |
 
 ---
 
 # 🚀 Getting Started
 
-## 1. Clone the Repository
+## Clone the Repository
 
 ```bash
 git clone https://github.com/hbhandari247-git/intelligent-agentic-research-assistant.git
@@ -150,9 +158,7 @@ git clone https://github.com/hbhandari247-git/intelligent-agentic-research-assis
 cd intelligent-agentic-research-assistant
 ```
 
----
-
-## 2. Create a Virtual Environment
+## Create a Virtual Environment
 
 ### macOS / Linux
 
@@ -163,32 +169,26 @@ source .venv/bin/activate
 
 ### Windows
 
-```bash
+```powershell
 python -m venv .venv
 .venv\Scripts\activate
 ```
 
----
-
-## 3. Install Dependencies
+## Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
+## Configure Environment Variables
 
-## 4. Configure Environment Variables
-
-Create a `.env` file in the project root.
+Create a `.env` file:
 
 ```env
 GROQ_API_KEY=your_groq_api_key
 ```
 
----
-
-## 5. Run the Application
+## Run the Application
 
 ```bash
 python app.py
@@ -199,35 +199,30 @@ python app.py
 # 💬 Example
 
 ```text
-📄 Loading PDF...
-✂️ Splitting document into chunks...
-🆕 Creating new vector database...
-✅ Pipeline initialized.
+🤖 Intelligent Agentic Research Assistant
 
-Ask a question:
-
-> What is self-attention?
+You:
+What is self-attention?
 
 Assistant:
-
-Self-attention allows each token in a sequence to attend to every other token, enabling the Transformer to model long-range dependencies without recurrence.
+Self-attention allows each token to attend to every other token in the sequence, enabling Transformers to model long-range dependencies efficiently.
 ```
 
 ---
 
 # ⚙️ Configuration
 
-All application settings are centralized in:
+Application settings are centralized in:
 
 ```text
 config/settings.py
 ```
 
-Available configuration includes:
+Configurable parameters include:
 
-* PDF document path
-* Chroma database location
+* PDF path
 * Embedding model
+* Vector database
 * Chunk size
 * Chunk overlap
 * Retrieval Top-K
@@ -240,66 +235,76 @@ Available configuration includes:
 # 🧠 How It Works
 
 1. Load the PDF document.
-2. Split the document into semantic chunks.
-3. Generate embeddings for every chunk.
-4. Store embeddings inside ChromaDB.
-5. Retrieve the most relevant chunks.
-6. Validate retrieval relevance.
-7. Build the retrieval context.
-8. Generate the final answer using the LLM.
+2. Split it into semantic chunks.
+3. Generate embeddings.
+4. Store embeddings in ChromaDB.
+5. Retrieve relevant context.
+6. Validate retrieval quality.
+7. Build the prompt context.
+8. Generate the final response using Groq.
 
 ---
 
-# 📈 Project Roadmap
+# 📦 Release History
 
-## ✅ v2.2.0
+| Version    | Description                                                                  |
+| ---------- | ---------------------------------------------------------------------------- |
+| **v2.2.1** | Centralized environment initialization and startup architecture improvements |
+| **v2.2.0** | Initial stable modular PDF RAG implementation                                |
 
-* [x] Modular RAG Architecture
-* [x] PDF Question Answering
-* [x] Chroma Vector Database
-* [x] HuggingFace Embeddings
-* [x] Groq Integration
-* [x] Service-Oriented Design
+---
+
+# 🗺️ Roadmap
+
+## ✅ v2.2.1
+
+* Stable Modular PDF RAG
+* Clean Service-Oriented Architecture
+* ChromaDB Integration
+* HuggingFace Embeddings
+* Groq Integration
+* Centralized Configuration
+* Centralized Environment Initialization
 
 ---
 
 ## 🚧 v2.3.0
 
-* [ ] Tavily Web Search
-* [ ] Hybrid PDF/Web Routing
-* [ ] Intelligent Query Router
+* Tavily Search Integration
+* Hybrid Retrieval (PDF + Web)
+* Intelligent Query Routing
 
 ---
 
 ## 🚀 v2.4.0
 
-* [ ] Conversation Memory
-* [ ] Context-Aware Responses
+* Conversation Memory
+* Context-Aware Responses
 
 ---
 
 ## 🚀 v2.5.0
 
-* [ ] Streaming Responses
+* Streaming Responses
 
 ---
 
 ## 🚀 v2.6.0
 
-* [ ] Multi-PDF Knowledge Base
+* Multi-PDF Knowledge Base
 
 ---
 
 ## 🚀 v2.7.0
 
-* [ ] Tool Calling
-* [ ] ReAct Agents
+* Tool Calling
+* ReAct Agents
 
 ---
 
 ## 🚀 v2.8.0
 
-* [ ] LangGraph Workflows
+* LangGraph Workflows
 
 ---
 
@@ -307,42 +312,42 @@ Available configuration includes:
 
 ### Intelligent Agentic Research Assistant
 
-* [ ] Autonomous Planning
-* [ ] Multi-Agent Collaboration
-* [ ] Web + Documents + APIs
-* [ ] Research Report Generation
-* [ ] MCP Integration
-* [ ] Long-Term Memory
-* [ ] Intelligent Tool Ecosystem
+* Autonomous Planning
+* Multi-Agent Collaboration
+* Hybrid Knowledge Retrieval
+* Research Report Generation
+* Model Context Protocol (MCP)
+* Long-Term Memory
+* Intelligent Tool Ecosystem
 
 ---
 
-# 📚 Learning Objectives
+# 📚 Learning Journey
 
-This repository is built as a learning journey through modern AI application development.
+This repository serves as a practical exploration of modern AI application development.
 
-Topics covered include:
+Topics covered throughout the project include:
 
 * Retrieval-Augmented Generation (RAG)
-* Vector Databases
 * Semantic Search
+* Vector Databases
 * Prompt Engineering
-* LangChain LCEL
-* Modular Python Architecture
+* LangChain & LCEL
+* Software Architecture
 * Hybrid Retrieval
 * AI Agents
 * LangGraph
 * Model Context Protocol (MCP)
 
-Each version introduces one major concept while keeping the architecture clean and maintainable.
+Every release introduces a new concept while preserving a clean, maintainable architecture.
 
 ---
 
 # 🤝 Contributing
 
-Contributions are welcome.
+Contributions, ideas, and feedback are always welcome.
 
-If you have suggestions, find a bug, or want to improve the project, feel free to open an issue or submit a pull request.
+If you'd like to improve the project, feel free to open an issue or submit a pull request.
 
 ---
 
@@ -354,9 +359,9 @@ This project is licensed under the **MIT License**.
 
 # ⭐ Support
 
-If you found this project useful or interesting, consider giving it a ⭐ on GitHub.
+If you find this project useful, consider giving it a ⭐ on GitHub.
 
-It helps others discover the project and motivates future development.
+Your support helps others discover the project and motivates future development.
 
 ---
 
@@ -364,8 +369,8 @@ It helps others discover the project and motivates future development.
 
 **Himanshu Bhandari**
 
-AI Engineer passionate about building production-quality LLM applications, Retrieval-Augmented Generation (RAG) systems, Agentic AI, and modern AI software architectures.
+AI Engineer passionate about building production-quality AI systems, Retrieval-Augmented Generation (RAG) applications, Agentic AI workflows, and scalable software architectures.
 
 ---
 
-> **"Build it modular. Build it understandable. Then make it intelligent."**
+> **"Great AI systems aren't built in a single release—they evolve through thoughtful architecture, continuous learning, and disciplined engineering."**
