@@ -650,7 +650,7 @@ AI Engineer passionate about building production-quality AI systems with a stron
 ### Connect
 
 - GitHub: https://github.com/hbhandari247-git
-- LinkedIn: *(linkedin.com/in/hbhandari247)*
+- LinkedIn: https://www.linkedin.com/in/hbhandari247
 
 ---
 
