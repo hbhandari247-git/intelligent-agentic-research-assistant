@@ -53,8 +53,7 @@ def get_vector_store(
 
     if chunks is None:
         raise ValueError(
-            "Document chunks are required "
-            "when creating a new vector database."
+            "Document chunks are required " "when creating a new vector database."
         )
 
     return Chroma.from_documents(

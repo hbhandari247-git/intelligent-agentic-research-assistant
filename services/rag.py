@@ -5,15 +5,21 @@ This module orchestrates document retrieval
 and answer generation.
 """
 
+from pathlib import Path
+
 from langchain_chroma import Chroma
 
+from models.citation import Citation
+from models.response import Response
+from models.source import Source
+from services.evaluator import (
+    evaluate_pdf_retrieval,
+)
 from services.generator import (
     build_context,
     generate_answer,
 )
-
 from services.retriever import (
-    has_relevant_context,
     retrieve_documents,
 )
 
@@ -21,30 +27,10 @@ from services.retriever import (
 def answer_from_pdf(
     vector_store: Chroma,
     question: str,
-) -> str | None:
+) -> Response:
     """
     Answer a user's question using
     the indexed PDF.
-
-    Workflow:
-
-        1. Retrieve relevant documents.
-        2. Check context relevance.
-        3. Build context.
-        4. Generate the answer.
-
-    Args:
-        vector_store:
-            The initialized Chroma vector store.
-
-        question:
-            The user's question.
-
-    Returns:
-        The generated answer if the
-        PDF contains relevant information.
-
-        Returns None otherwise.
     """
 
     retrieved_documents = retrieve_documents(
@@ -52,21 +38,55 @@ def answer_from_pdf(
         question,
     )
 
-    if not has_relevant_context(
+    evaluation = evaluate_pdf_retrieval(
         retrieved_documents,
-    ):
-        return None
+    )
 
-    chunks = [
-        document.page_content
-        for document, _ in retrieved_documents
-    ]
+    if not evaluation.passed:
+        return Response.empty()
+
+    chunks = []
+    citations = []
+    seen = set()
+
+    for document, _ in retrieved_documents:
+        chunks.append(
+            document.page_content,
+        )
+
+        metadata = document.metadata
+
+        key = (
+            metadata["source"],
+            metadata["page"],
+        )
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+
+        citations.append(
+            Citation(
+                title=Path(
+                    metadata["source"],
+                ).name,
+                location=f"Page {metadata['page'] + 1}",
+            )
+        )
 
     context = build_context(
         chunks,
     )
 
-    return generate_answer(
-        context,
-        question,
+    citations.sort(key=lambda citation: int(citation.location.removeprefix("Page ")))
+
+    return Response(
+        answer=generate_answer(
+            context,
+            question,
+        ),
+        source=Source.PDF,
+        confidence=evaluation.confidence,
+        citations=citations,
     )

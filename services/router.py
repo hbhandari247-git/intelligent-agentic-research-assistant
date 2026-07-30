@@ -7,6 +7,7 @@ to the appropriate retrieval workflow.
 
 from langchain_chroma import Chroma
 
+from models.response import Response
 from services.rag import answer_from_pdf
 from services.web_rag import answer_from_web
 
@@ -14,7 +15,7 @@ from services.web_rag import answer_from_web
 def route_question(
     vector_store: Chroma,
     question: str,
-) -> str:
+) -> Response:
     """
     Route a user's question to the
     appropriate retrieval workflow.
@@ -33,16 +34,17 @@ def route_question(
             The user's question.
 
     Returns:
-        The generated answer.
+        A response generated from either the PDF
+        or web search.
     """
 
-    pdf_answer = answer_from_pdf(
+    response = answer_from_pdf(
         vector_store,
         question,
     )
 
-    if pdf_answer is not None:
-        return pdf_answer
+    if response.found:
+        return response
 
     return answer_from_web(
         question,

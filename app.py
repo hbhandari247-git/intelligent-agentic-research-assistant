@@ -5,7 +5,7 @@ Intelligent Agentic Research Assistant.
 
 from dotenv import load_dotenv
 
-# Load environment variables BEFORE importing services
+# Load environment variables BEFORE importing services.
 load_dotenv()
 
 from services.pipeline import initialize_pipeline
@@ -33,12 +33,31 @@ def main() -> None:
         if not question:
             continue
 
-        answer = route_question(
+        response = route_question(
             vector_store,
             question,
         )
 
-        print(f"\n🤖 {answer}\n")
+        print()
+
+        print(response.answer)
+
+        print(f"\nSource: {response.source.value}")
+
+        print(f"Confidence: {response.confidence.value}")
+
+        if response.citations:
+            print("\nReferences:")
+
+            for citation in response.citations:
+                print(f"- {citation.title}")
+
+                print(f"  {citation.location}")
+
+                if citation.url:
+                    print(f"  {citation.url}")
+
+        print()
 
 
 if __name__ == "__main__":

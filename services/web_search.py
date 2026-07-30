@@ -12,14 +12,12 @@ from tavily import TavilyClient
 from config.settings import (
     TAVILY_MAX_RESULTS,
 )
-
+from models.web_result import WebResult
 
 tavily_api_key = os.getenv("TAVILY_API_KEY")
 
 if not tavily_api_key:
-    raise ValueError(
-        "TAVILY_API_KEY not found in environment variables."
-    )
+    raise ValueError("TAVILY_API_KEY not found in environment variables.")
 
 
 client = TavilyClient(
@@ -29,16 +27,16 @@ client = TavilyClient(
 
 def retrieve_from_web(
     question: str,
-) -> list[str]:
+) -> list[WebResult]:
     """
-    Answer a question using Tavily Search.
+    Retrieve relevant web search results.
 
     Args:
         question:
             The user's question.
 
     Returns:
-        Search results as formatted text.
+        A list of web search results.
     """
 
     response = client.search(
@@ -52,6 +50,23 @@ def retrieve_from_web(
     )
 
     return [
-        result["content"]
+        WebResult(
+            title=result.get(
+                "title",
+                "",
+            ),
+            url=result.get(
+                "url",
+                "",
+            ),
+            content=result.get(
+                "content",
+                "",
+            ),
+            score=result.get(
+                "score",
+                0.0,
+            ),
+        )
         for result in results
     ]

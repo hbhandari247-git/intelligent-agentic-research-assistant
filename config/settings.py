@@ -23,8 +23,6 @@ CHROMA_DB_PATH = "db"
 
 TOP_K = 3
 
-MAX_SIMILARITY_SCORE = 1.0
-
 CHUNK_SIZE = 500
 
 CHUNK_OVERLAP = 100
@@ -48,3 +46,12 @@ TEMPERATURE = 0
 # -----------------------------
 
 TAVILY_MAX_RESULTS = 3
+
+"""
+Application configuration.
+"""
+
+
+# Retrieval settings
+PDF_RETRIEVAL_THRESHOLD = 1.00
+WEB_RETRIEVAL_THRESHOLD = 0.50
