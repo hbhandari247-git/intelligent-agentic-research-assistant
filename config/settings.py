@@ -55,3 +55,5 @@ Application configuration.
 # Retrieval settings
 PDF_RETRIEVAL_THRESHOLD = 1.00
 WEB_RETRIEVAL_THRESHOLD = 0.50
+
+HYBRID_TOP_K = 5

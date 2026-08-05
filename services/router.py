@@ -2,14 +2,13 @@
 Question routing service.
 
 This module routes user questions
-to the appropriate retrieval workflow.
+through the hybrid retrieval workflow.
 """
 
 from langchain_chroma import Chroma
 
 from models.response import Response
-from services.rag import answer_from_pdf
-from services.web_rag import answer_from_web
+from services.hybrid_rag import answer_from_hybrid
 
 
 def route_question(
@@ -17,14 +16,12 @@ def route_question(
     question: str,
 ) -> Response:
     """
-    Route a user's question to the
-    appropriate retrieval workflow.
+    Route a user's question through the
+    hybrid retrieval workflow.
 
-    Workflow:
-
-        1. Try answering from the PDF.
-        2. If no relevant context exists,
-           fall back to web search.
+    The hybrid workflow determines whether
+    to use PDF retrieval, web retrieval,
+    or both based on retrieval quality.
 
     Args:
         vector_store:
@@ -34,18 +31,10 @@ def route_question(
             The user's question.
 
     Returns:
-        A response generated from either the PDF
-        or web search.
+        The final structured response.
     """
 
-    response = answer_from_pdf(
+    return answer_from_hybrid(
         vector_store,
-        question,
-    )
-
-    if response.found:
-        return response
-
-    return answer_from_web(
         question,
     )

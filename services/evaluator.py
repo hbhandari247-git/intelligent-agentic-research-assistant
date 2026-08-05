@@ -108,3 +108,42 @@ def evaluate_web_retrieval(
         confidence=confidence,
         score=best_score,
     )
+
+
+def combine_confidence(
+    pdf_confidence: Confidence,
+    web_confidence: Confidence,
+) -> Confidence:
+    """
+    Combine PDF and web retrieval confidence
+    into a final hybrid confidence level.
+
+    The stronger available retrieval confidence
+    is used for the combined result.
+
+    Args:
+        pdf_confidence:
+            Confidence from PDF retrieval.
+
+        web_confidence:
+            Confidence from web retrieval.
+
+    Returns:
+        Combined hybrid confidence.
+    """
+
+    confidence_rank = {
+        Confidence.NONE: 0,
+        Confidence.LOW: 1,
+        Confidence.MEDIUM: 2,
+        Confidence.HIGH: 3,
+        Confidence.VERY_HIGH: 4,
+    }
+
+    return max(
+        (
+            pdf_confidence,
+            web_confidence,
+        ),
+        key=confidence_rank.get,
+    )

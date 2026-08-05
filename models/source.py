@@ -7,7 +7,7 @@ from enum import Enum
 
 class Source(Enum):
     """
-    Supported answer sources.
+    Source used to generate a response.
     """
 
     PDF = "PDF"
