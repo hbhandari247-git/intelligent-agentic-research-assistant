@@ -47,13 +47,22 @@ TEMPERATURE = 0
 
 TAVILY_MAX_RESULTS = 3
 
-"""
-Application configuration.
-"""
+# -----------------------------
+# Retrieval Evaluation
+# -----------------------------
 
-
-# Retrieval settings
 PDF_RETRIEVAL_THRESHOLD = 1.00
+
 WEB_RETRIEVAL_THRESHOLD = 0.50
 
+# -----------------------------
+# Hybrid Retrieval
+# -----------------------------
+
 HYBRID_TOP_K = 5
+
+# -----------------------------
+# Conversation Memory
+# -----------------------------
+
+MAX_CONVERSATION_MESSAGES = 10

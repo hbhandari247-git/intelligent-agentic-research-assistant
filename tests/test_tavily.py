@@ -1,18 +1,84 @@
+"""
+Integration tests for Tavily web retrieval.
+
+These tests make real Tavily API requests
+and therefore require valid API credentials.
+"""
+
+import os
+
+import pytest
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from services.web_search import answer_from_web
+from services.web_search import retrieve_from_web
+
+RUN_TAVILY_TESTS = (
+    os.getenv(
+        "RUN_TAVILY_TESTS",
+        "",
+    ).lower()
+    == "true"
+)
+
+pytestmark = pytest.mark.skipif(
+    not RUN_TAVILY_TESTS,
+    reason="Tavily integration tests are disabled.",
+)
 
 
-def main() -> None:
-    question = input("Question: ")
+def test_tavily_returns_results() -> None:
+    """
+    Verify Tavily returns web results
+    for a valid search query.
+    """
 
-    result = answer_from_web(question)
+    results = retrieve_from_web(
+        "Who is the CEO of OpenAI?",
+    )
 
-    print("\nResults:\n")
-    print(result)
+    assert results
+    assert len(results) > 0
 
 
-if __name__ == "__main__":
-    main()
+def test_tavily_result_structure() -> None:
+    """
+    Verify Tavily results contain
+    the expected structured fields.
+    """
+
+    results = retrieve_from_web(
+        "Who is the CEO of OpenAI?",
+    )
+
+    assert results
+
+    result = results[0]
+
+    assert result.title
+    assert result.url
+    assert result.content
+    assert isinstance(
+        result.score,
+        float,
+    )
+
+
+def test_tavily_returns_relevant_results() -> None:
+    """
+    Verify Tavily returns relevant evidence
+    for a known search query.
+    """
+
+    results = retrieve_from_web(
+        "Who is the CEO of OpenAI?",
+    )
+
+    assert results
+
+    combined_content = " ".join(
+        (f"{result.title} " f"{result.content}").lower() for result in results
+    )
+
+    assert "openai" in combined_content

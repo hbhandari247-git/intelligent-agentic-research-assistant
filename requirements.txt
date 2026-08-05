@@ -17,3 +17,5 @@ tavily-python
 python-dotenv
 
 langchain-huggingface
+
+pytest==9.1.1

@@ -69,59 +69,43 @@ The current implementation provides:
 -   🔐 Centralized environment initialization
 -   📦 Persistent vector database
 -   📝 Fully typed and documented codebase
+-   💬 Context-aware multi-turn conversations
+-   🧠 Bounded in-session conversation memory
+-   ✍️ Standalone question rewriting for follow-up retrieval
+-   🔗 Pronoun and conversational reference resolution
+-   🛡️ Unresolved-context detection before retrieval
+-   🧹 Conversation memory reset with the `clear` command
+-   🧪 Unit and external integration test coverage with pytest
 -   🔄 Extensible architecture for future AI capabilities
 
 ------------------------------------------------------------------------
 
 # 🎯 Current Release
 
-## **v2.5.0 -- Adaptive Hybrid Retrieval & Cross-Source Reranking**
+## **v2.6.0 -- Conversation Memory & Context-Aware Multi-Turn Interactions**
 
 ### ✨ Highlights
 
--   🔀 Adaptive PDF-only, Hybrid, and Web-only retrieval strategies
--   🔗 True PDF + Web hybrid retrieval
--   🧩 Shared `RetrievalCandidate` representation across knowledge
-    sources
--   🎯 Embedding-based cross-source reranking
--   🏆 `RankedCandidate` model with a common relevance score
--   ✂️ Configurable `HYBRID_TOP_K` evidence selection
--   🧬 Structured multi-source context fusion
--   📑 Unified PDF, Web, and Hybrid citations
--   📊 Combined confidence handling for hybrid responses
--   🛡️ Safe Null Object behavior when no source provides sufficient
-    evidence
--   🏗️ Simplified routing through a dedicated hybrid RAG workflow
--   📝 Fully typed and modular implementation
+-   💬 Context-aware multi-turn conversations
+-   🧠 Bounded in-session conversation memory
+-   ✍️ Follow-up questions rewritten into standalone retrieval queries
+-   🔗 Pronoun and conversational reference resolution
+-   🛡️ Unresolved-context detection before PDF or Web retrieval
+-   🧹 `clear` command for resetting session memory
+-   🏗️ Dedicated `ConversationService` orchestration layer
+-   🧩 Typed `ConversationMessage` and `RewriteResult` models
+-   🧪 Deterministic memory unit tests plus Groq and Tavily integration tests
+-   🔀 Full compatibility with the v2.5.0 adaptive hybrid retrieval pipeline
 
-### What's New in v2.5.0?
+### What's New in v2.6.0?
 
-This release evolves the previous PDF-first fallback pipeline into an
-**adaptive hybrid retrieval system**.
+v2.6.0 adds a conversational layer in front of the adaptive hybrid RAG pipeline. The assistant now retains a bounded window of recent user and assistant messages and uses that history to resolve follow-up questions before retrieval.
 
-The assistant first evaluates local PDF retrieval quality and selects
-one of three strategies:
+For example, after answering `Who is the CEO of OpenAI?`, the follow-up `What company does he lead?` can be rewritten as a standalone question such as `What company does Sam Altman lead?` before entering retrieval.
 
--   **PDF Only** --- strong local evidence is sufficient, so no
-    unnecessary web request is made.
--   **Hybrid** --- usable but uncertain PDF evidence is supplemented
-    with Tavily web retrieval.
--   **Web Only** --- unusable PDF evidence causes the workflow to rely
-    on evaluated web results.
+The rewriter also detects questions that depend on missing context. After memory is cleared, an ambiguous question such as `What company does he lead?` is stopped before Chroma or Tavily retrieval and the assistant asks the user to clarify the missing reference instead of searching an underspecified query.
 
-PDF and web results are converted into a shared `RetrievalCandidate`
-representation. Because Chroma distance scores and Tavily relevance
-scores are not directly comparable, candidates are reranked against the
-original question using the same Hugging Face embedding model and cosine
-similarity. The strongest candidates are retained using `HYBRID_TOP_K`.
-
-The selected evidence is fused into structured multi-source context
-while preserving source metadata and citations. The final response can
-accurately report **PDF**, **Web**, **Hybrid**, or **None** as its
-source.
-
-This release establishes the retrieval foundation for **conversation
-memory and context-aware multi-turn interactions** in v2.6.0.
+Conversation behavior is coordinated by `ConversationService`, keeping the command-line interface focused on input, commands, and response rendering while preserving the existing PDF-only, Hybrid, and Web-only retrieval strategies introduced in v2.5.0.
 
 ------------------------------------------------------------------------
 
@@ -131,81 +115,93 @@ memory and context-aware multi-turn interactions** in v2.6.0.
                               User Question
                                    │
                                    ▼
-                                 app.py
+                                  app.py
                                    │
                                    ▼
-                            route_question()
+                         ConversationService
+                         ┌─────────┴─────────┐
+                         │                   │
+                         ▼                   ▼
+                 ConversationMemory   Question Rewriter
+                         │                   │
+                         │             RewriteResult
+                         │                   │
+                         └─────────┬─────────┘
                                    │
-                                   ▼
-                         answer_from_hybrid()
-                                   │
-                                   ▼
-                      PDF Retrieval + Evaluation
-                                   │
-                                   ▼
-                       Retrieval Strategy
-                 ┌─────────────────┼─────────────────┐
-                 │                 │                 │
-                 ▼                 ▼                 ▼
-              PDF_ONLY           HYBRID           WEB_ONLY
-                 │                 │                 │
-                 │                 ▼                 ▼
-                 │          Tavily Web Search   Tavily Web Search
-                 │                 │                 │
-                 └─────────────────┼─────────────────┘
-                                   ▼
-                         Candidate Normalization
-                         RetrievalCandidate[]
-                                   │
-                                   ▼
-                     Common Embedding-Space Reranker
-                                   │
-                                   ▼
-                          RankedCandidate[]
-                                   │
-                                   ▼
-                             HYBRID_TOP_K
-                                   │
-                                   ▼
-                            Context Fusion
-                          ┌────────┴────────┐
-                          ▼                 ▼
-                       Context          Citations
-                          │
-                          ▼
-                     generate_answer()
-                          │
-                          ▼
-                       Groq LLM
-                          │
-                          ▼
-                        Response
-              (Answer • Source • Confidence • Citations)
+                         resolved? │
+                    ┌──────────────┴──────────────┐
+                    │                             │
+                    ▼                             ▼
+               unresolved                    resolved
+                    │                             │
+                    ▼                             ▼
+          Ask user to clarify              route_question()
+                                                  │
+                                                  ▼
+                                         answer_from_hybrid()
+                                                  │
+                                                  ▼
+                                      PDF Retrieval + Evaluation
+                                                  │
+                                                  ▼
+                                         Retrieval Strategy
+                                  ┌───────────────┼───────────────┐
+                                  ▼               ▼               ▼
+                               PDF_ONLY         HYBRID          WEB_ONLY
+                                  │               │               │
+                                  │               ▼               ▼
+                                  │        Tavily Web Search  Tavily Web Search
+                                  └───────────────┼───────────────┘
+                                                  ▼
+                                      Candidate Normalization
+                                       RetrievalCandidate[]
+                                                  │
+                                                  ▼
+                                  Common Embedding-Space Reranker
+                                                  │
+                                                  ▼
+                                         RankedCandidate[]
+                                                  │
+                                                  ▼
+                                           HYBRID_TOP_K
+                                                  │
+                                                  ▼
+                                          Context Fusion
+                                      ┌───────────┴───────────┐
+                                      ▼                       ▼
+                                   Context                 Citations
+                                      │
+                                      ▼
+                                generate_answer()
+                                      │
+                                      ▼
+                                   Groq LLM
+                                      │
+                                      ▼
+                                    Response
+                         (Answer • Source • Confidence • Citations)
+                                      │
+                                      ▼
+                         Update ConversationMemory
 ```
 
-The application keeps retrieval, evaluation, strategy selection,
-candidate normalization, reranking, context fusion, generation, and
-response construction as focused responsibilities.
+The application separates conversational orchestration from retrieval and generation responsibilities.
 
+-   **Conversation Service** coordinates context resolution, retrieval routing, and memory updates.
+-   **Conversation Memory** stores a bounded in-session history of typed user and assistant messages.
+-   **Question Rewriter** converts contextual follow-ups into standalone retrieval questions and identifies missing conversational context.
 -   **Retriever** retrieves relevant PDF evidence from ChromaDB.
--   **Web Search** retrieves external evidence through Tavily when
-    required.
--   **Evaluator** interprets source-specific retrieval scores and
-    assigns confidence.
--   **Retrieval Strategy** selects PDF-only, Hybrid, or Web-only
-    behavior.
--   **Candidate Builder** converts source-specific results into a common
-    representation.
+-   **Web Search** retrieves external evidence through Tavily when required.
+-   **Evaluator** interprets source-specific retrieval scores and assigns confidence.
+-   **Retrieval Strategy** selects PDF-only, Hybrid, or Web-only behavior.
+-   **Candidate Builder** converts source-specific results into a common representation.
 -   **Reranker** compares PDF and web candidates in one embedding space.
--   **Context Fusion** combines the strongest ranked evidence while
-    preserving citations.
+-   **Context Fusion** combines the strongest ranked evidence while preserving citations.
 -   **Generator** produces a grounded answer from the fused context.
--   **Router** delegates questions to the hybrid RAG workflow.
--   **Response models** provide a consistent answer, source, confidence,
-    and citation interface.
+-   **Router** delegates resolved standalone questions to the hybrid RAG workflow.
+-   **Response models** provide a consistent answer, source, confidence, and citation interface.
 
-PDF distance and Tavily relevance values are never directly compared
-because they have different score semantics.
+PDF distance and Tavily relevance values are never directly compared because they have different score semantics.
 
 ------------------------------------------------------------------------
 
@@ -222,9 +218,11 @@ intelligent-agentic-research-assistant/
 ├── models/
 │   ├── __init__.py
 │   ├── citation.py
+│   ├── conversation_message.py
 │   ├── confidence.py
 │   ├── ranked_candidate.py
 │   ├── response.py
+│   ├── rewrite_result.py
 │   ├── retrieval_candidate.py
 │   ├── retrieval_evaluation.py
 │   ├── retrieval_strategy.py
@@ -234,6 +232,8 @@ intelligent-agentic-research-assistant/
 │   ├── __init__.py
 │   ├── candidate_builder.py
 │   ├── context_fusion.py
+│   ├── conversation.py
+│   ├── conversation_memory.py
 │   ├── document_loader.py
 │   ├── embeddings.py
 │   ├── evaluator.py
@@ -241,6 +241,7 @@ intelligent-agentic-research-assistant/
 │   ├── hybrid_rag.py
 │   ├── llm.py
 │   ├── pipeline.py
+│   ├── question_rewriter.py
 │   ├── rag.py
 │   ├── reranker.py
 │   ├── retrieval_strategy.py
@@ -250,6 +251,11 @@ intelligent-agentic-research-assistant/
 │   ├── vector_store.py
 │   ├── web_rag.py
 │   └── web_search.py
+├── tests/
+│   ├── __init__.py
+│   ├── test_conversation_memory.py
+│   ├── test_rewriter.py
+│   └── test_tavily.py
 ├── requirements.txt
 ├── README.md
 ├── LICENSE
@@ -265,6 +271,7 @@ intelligent-agentic-research-assistant/
 | `services/` | Business logic and application services |
 | `db/` | Persistent Chroma vector database |
 | `data/` | PDF documents used as the local knowledge base |
+| `tests/` | Deterministic unit tests and opt-in external integration tests |
 
 ------------------------------------------------------------------------
 
@@ -380,6 +387,7 @@ This includes:
 -   Tavily search configuration
 -   LLM model
 -   Temperature
+-   Conversation memory limit (`MAX_CONVERSATION_MESSAGES`)
 
 ------------------------------------------------------------------------
 
@@ -398,60 +406,61 @@ Subsequent executions reuse the existing database automatically.
 python app.py
 ```
 
+During a session:
+
+-   Type `exit` to quit.
+-   Type `clear` to reset conversation memory without restarting the application.
+
 ------------------------------------------------------------------------
 
 # 💬 Example Session
 
 ``` text
 🤖 Intelligent Agentic Research Assistant
+Type 'exit' to quit.
+Type 'clear' to clear conversation memory.
 
-You:
-What is self-attention?
+You: What is self-attention?
 
-🤖
-Self-attention is an attention mechanism that enables each token in a sequence to attend to every other token. Unlike recurrent architectures, it allows the model to capture long-range dependencies by computing relationships between all tokens in parallel.
+Self-attention is an attention mechanism that relates different positions
+of a sequence in order to compute a representation of that sequence.
 
-Source:
-PDF
+Source: PDF
+Confidence: High
 
-Confidence:
-High
+You: Why is it useful?
 
-References:
-• Attention Is All You Need.pdf — Page 2
-• Attention Is All You Need.pdf — Page 6
+Self-attention is useful because it can directly model relationships
+between positions in the sequence and supports parallel computation.
 
-------------------------------------------------------------
+Source: PDF
+Confidence: High
 
-You:
-Who is the CEO of OpenAI?
+You: Who is the CEO of OpenAI?
 
-🤖
 Sam Altman is the CEO of OpenAI.
 
-Source:
-Web
+Source: Web
+Confidence: Very High
 
-Confidence:
-Very High
+You: What company does he lead?
 
-References:
-• OpenAI
+Sam Altman is the CEO of OpenAI.
 
-------------------------------------------------------------
+Source: Web
+Confidence: High
 
-You:
-asdkfjhasdkjfh
+You: clear
 
-🤖
-I couldn't find relevant information to answer your question.
+🧹 Conversation memory cleared.
 
-Source:
-None
+You: What company does he lead?
 
-Confidence:
-None
+I need more context to understand your question. Please clarify what
+you are referring to.
 ```
+
+The follow-up question is rewritten internally for retrieval while the original user message is retained in conversation memory. After `clear`, the missing reference is detected before retrieval.
 
 ------------------------------------------------------------------------
 
@@ -488,6 +497,11 @@ config/settings.py
 -   Tavily search depth
 -   Maximum search results
 
+### Conversation Memory
+
+-   Maximum retained conversation messages (`MAX_CONVERSATION_MESSAGES`)
+-   The limit must be positive and even so normal history windows preserve complete user/assistant exchanges
+
 ### Storage
 
 -   Persistent Chroma database path
@@ -500,25 +514,31 @@ without requiring changes throughout the codebase.
 
 # 🧠 How It Works
 
-The assistant follows an adaptive retrieval workflow designed to use
-strong local evidence efficiently while supplementing uncertain
-retrieval with external knowledge when needed.
+The assistant combines a conversational resolution layer with the adaptive hybrid retrieval workflow introduced in v2.5.0.
 
 ## Step 1 --- User Question
 
-The application accepts a natural language question.
+The CLI accepts a natural-language question and passes it to `ConversationService`.
 
-## Step 2 --- PDF Semantic Retrieval
+## Step 2 --- Conversation Context Resolution
 
-The question is embedded and compared against the persistent Chroma
-vector database to retrieve relevant PDF chunks.
+Recent bounded conversation history is supplied to the question rewriter. The rewriter determines whether the current question has enough context to be understood.
 
-## Step 3 --- PDF Retrieval Evaluation
+If a required conversational reference cannot be resolved, retrieval is skipped and the assistant asks the user to clarify.
 
-PDF results are evaluated using the configured distance threshold and
-mapped to a confidence level.
+## Step 3 --- Standalone Question Rewriting
 
-## Step 4 --- Adaptive Retrieval Strategy
+Resolved follow-up questions are rewritten into standalone retrieval queries while preserving the user's intent. Standalone questions remain standalone.
+
+## Step 4 --- PDF Semantic Retrieval
+
+The resolved question is embedded and compared against the persistent Chroma vector database to retrieve relevant PDF chunks.
+
+## Step 5 --- PDF Retrieval Evaluation
+
+PDF results are evaluated using the configured distance threshold and mapped to a confidence level.
+
+## Step 6 --- Adaptive Retrieval Strategy
 
 The evaluation selects one of three strategies:
 
@@ -528,18 +548,13 @@ Usable but uncertain evidence  → HYBRID (PDF + Web)
 Unusable PDF evidence          → WEB_ONLY
 ```
 
-This avoids unnecessary web requests when local evidence is already
-strong.
+This avoids unnecessary web requests when local evidence is already strong.
 
-## Step 5 --- Web Retrieval and Evaluation
+## Step 7 --- Web Retrieval and Evaluation
 
-Hybrid and Web-only strategies use Tavily. Web results are independently
-evaluated using web relevance-score semantics.
+Hybrid and Web-only strategies use Tavily. Web results are independently evaluated using web relevance-score semantics. PDF distance scores and Tavily relevance scores are **not directly compared**.
 
-PDF distance scores and Tavily relevance scores are **not directly
-compared**.
-
-## Step 6 --- Candidate Normalization
+## Step 8 --- Candidate Normalization
 
 Source-specific results become a common application representation:
 
@@ -549,60 +564,56 @@ PDF Document + Distance ──┐
 Tavily WebResult ─────────┘
 ```
 
-Each candidate preserves content, source, its original retrieval score,
-and citation metadata.
+Each candidate preserves content, source, its original retrieval score, and citation metadata.
 
-## Step 7 --- Cross-Source Reranking
+## Step 9 --- Cross-Source Reranking
 
-All candidates are embedded using the same Hugging Face embedding model
-and compared with the original question using cosine similarity.
+All candidates are embedded using the same Hugging Face embedding model and compared with the standalone question using cosine similarity.
 
-``` text
-RetrievalCandidate[]
-        │
-        ▼
-Embedding Reranker
-        │
-        ▼
-RankedCandidate[]
-```
+## Step 10 --- Top-K Evidence Selection
 
-The original source-specific retrieval score remains unchanged for
-traceability.
+Only the strongest reranked candidates are retained according to `HYBRID_TOP_K`. The reranker score orders evidence; it is not used as the final confidence score.
 
-## Step 8 --- Top-K Evidence Selection
+## Step 11 --- Context Fusion
 
-Only the strongest reranked candidates are retained according to
-`HYBRID_TOP_K`.
+Ranked PDF and web evidence is fused into structured context while preserving source boundaries and citation metadata.
 
-The reranker score is used for **ordering evidence**, not as an
-acceptance threshold or final confidence score.
+## Step 12 --- Grounded Response Generation
 
-## Step 9 --- Context Fusion
+The Groq LLM generates an answer using the fused retrieval context. If neither PDF nor web retrieval provides acceptable evidence, the assistant returns the Null Object response instead of guessing.
 
-Ranked PDF and web evidence is fused into structured context while
-preserving source boundaries, document titles, PDF page locations, and
-web citation metadata.
+## Step 13 --- Memory Update
 
-## Step 10 --- Grounded Response Generation
+After a resolved interaction completes, the original user question and generated assistant answer are stored in bounded in-session memory. Internal rewritten questions are not stored as user messages.
 
-The Groq LLM generates an answer using **only** the fused retrieval
-context.
+## Step 14 --- Structured Response
 
-If neither PDF nor web retrieval provides acceptable evidence, the
-assistant returns the Null Object response instead of guessing.
-
-## Step 11 --- Structured Response
-
-Every response contains:
+Every retrieval response contains:
 
 -   Answer
 -   Source (`PDF`, `Web`, `Hybrid`, or `None`)
 -   Confidence
 -   Citations when available
 
-Citations are constructed only from evidence that survives reranking and
-Top-K selection.
+------------------------------------------------------------------------
+
+# 🧪 Testing
+
+The project uses pytest for deterministic unit tests and opt-in external integration tests.
+
+Run the normal test suite:
+
+``` bash
+pytest -v
+```
+
+LLM and Tavily tests are skipped by default so normal tests do not depend on external API calls. To explicitly run all external integration tests:
+
+``` bash
+RUN_LLM_TESTS=true RUN_TAVILY_TESTS=true pytest -v
+```
+
+The v2.6.0 validation suite covers bounded memory behavior, context-aware question rewriting, unresolved references, conversational follow-ups, and Tavily result structure/relevance.
 
 ------------------------------------------------------------------------
 
@@ -611,6 +622,12 @@ Top-K selection.
   -----------------------------------------------------------------------
   Version                        Description
   ------------------------------ ----------------------------------------
+  **v2.6.0**                     Bounded in-session conversation memory,
+                                 context-aware question rewriting, follow-up
+                                 reference resolution, unresolved-context
+                                 detection, memory reset, conversation
+                                 orchestration, and pytest validation
+
   **v2.5.0**                     Adaptive hybrid retrieval, normalized
                                  cross-source candidates, embedding-based
                                  reranking, Top-K evidence selection,
@@ -655,13 +672,21 @@ autonomous research assistant.
 
 ------------------------------------------------------------------------
 
-## 🚀 v2.6.0
+## ✅ v2.6.0
 
-### Memory
+### Conversation Memory & Context-Aware Interactions
 
--   Conversation memory
+-   Bounded in-session conversation memory
+-   Typed user and assistant conversation messages
 -   Context-aware responses
 -   Multi-turn conversations
+-   Standalone follow-up question rewriting
+-   Pronoun and reference resolution
+-   Unresolved-context detection before retrieval
+-   Graceful clarification for missing context
+-   `clear` command for resetting memory
+-   Dedicated conversation orchestration service
+-   Unit and external integration testing
 
 ------------------------------------------------------------------------
 
@@ -721,6 +746,9 @@ Topics covered throughout the project include:
 -   Adaptive Hybrid Retrieval
 -   Cross-source Reranking
 -   Context Fusion
+-   Conversation Memory
+-   Context-Aware Question Rewriting
+-   Multi-Turn Interaction Design
 -   Semantic Search
 -   Vector Databases
 -   Prompt Engineering
@@ -814,27 +842,21 @@ accessible.
 
 # 🚀 What's Next?
 
-The journey doesn't end with v2.5.0.
-
-The next release will focus on **conversation memory and context-aware
-multi-turn interactions**, followed by broader knowledge-base and agent
-capabilities.
+v2.6.0 establishes the conversational foundation. The next release will focus on expanding the local knowledge base beyond a single document.
 
 Upcoming work includes:
 
--   Conversation Memory
--   Context-Aware Responses
--   Multi-turn Conversations
 -   Multi-document Knowledge Bases
+-   Dynamic document indexing
+-   Metadata filtering
 -   LangGraph Workflows
 -   Autonomous AI Agents
 -   Model Context Protocol (MCP)
 -   Production Deployment
 -   Continuous Evaluation
+-   Longer-term and persistent memory in a future release
 
-The goal is to evolve this repository into a complete
-**production-quality Agentic AI Research Assistant** while documenting
-every architectural decision along the way.
+The goal is to evolve this repository into a complete **production-quality Agentic AI Research Assistant** while documenting every architectural decision along the way.
 
 ------------------------------------------------------------------------
 

@@ -8,8 +8,10 @@ from dotenv import load_dotenv
 # Load environment variables BEFORE importing services.
 load_dotenv()
 
+from config.settings import MAX_CONVERSATION_MESSAGES
+from services.conversation import ConversationService
+from services.conversation_memory import ConversationMemory
 from services.pipeline import initialize_pipeline
-from services.router import route_question
 
 
 def main() -> None:
@@ -17,26 +19,48 @@ def main() -> None:
     Start the research assistant.
     """
 
-    # Initialize the application.
     vector_store = initialize_pipeline()
 
+    memory = ConversationMemory(
+        max_messages=MAX_CONVERSATION_MESSAGES,
+    )
+
+    conversation = ConversationService(
+        vector_store=vector_store,
+        memory=memory,
+    )
+
     print("🤖 Intelligent Agentic Research Assistant")
-    print("Type 'exit' to quit.\n")
+    print("Type 'exit' to quit.")
+    print("Type 'clear' to clear conversation memory.\n")
 
     while True:
         question = input("You: ").strip()
+
+        if not question:
+            continue
 
         if question.lower() == "exit":
             print("\n👋 Goodbye!")
             break
 
-        if not question:
+        if question.lower() == "clear":
+            conversation.clear()
+
+            print("\n🧹 Conversation memory cleared.\n")
             continue
 
-        response = route_question(
-            vector_store,
+        response = conversation.ask(
             question,
         )
+
+        if response is None:
+            print(
+                "\nI need more context to understand "
+                "your question. Please clarify what "
+                "you are referring to.\n"
+            )
+            continue
 
         print()
 
