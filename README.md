@@ -258,29 +258,29 @@ intelligent-agentic-research-assistant/
 
 ### Directory Overview
 
-  Directory       Purpose
-  --------------- ------------------------------------------------
-  **config/**     Centralized application configuration
-  **models/**     Domain models used throughout the application
-  **services/**   Business logic and application services
-  **db/**         Persistent Chroma vector database
-  **data/**       PDF documents used as the local knowledge base
+| Directory | Purpose |
+| --- | --- |
+| `config/` | Centralized application configuration |
+| `models/` | Domain models used throughout the application |
+| `services/` | Business logic and application services |
+| `db/` | Persistent Chroma vector database |
+| `data/` | PDF documents used as the local knowledge base |
 
 ------------------------------------------------------------------------
 
 # ⚙️ Technology Stack
 
-  Technology          Purpose
-  ------------------- ----------------------------------------
-  **Python 3.12**     Core programming language
-  **LangChain**       LLM application framework
-  **LCEL**            Pipeline composition and orchestration
-  **ChromaDB**        Persistent vector database
-  **Hugging Face**    Sentence Transformer embeddings
-  **Groq**            Large Language Model inference
-  **Tavily**          AI-powered web search
-  **PyPDF**           PDF document processing
-  **python-dotenv**   Environment variable management
+| Technology | Purpose |
+| --- | --- |
+| **Python 3.12** | Core programming language |
+| **LangChain** | LLM application framework |
+| **LCEL** | Pipeline composition and orchestration |
+| **ChromaDB** | Persistent vector database |
+| **Hugging Face** | Sentence Transformer embeddings |
+| **Groq** | Large Language Model inference |
+| **Tavily** | AI-powered web search |
+| **PyPDF** | PDF document processing |
+| **python-dotenv** | Environment variable management |
 
 ------------------------------------------------------------------------
 
