@@ -1,33 +1,53 @@
 """
 Vector store service.
 
-This module creates or loads the Chroma
+This module creates or loads a Chroma
 vector database used for semantic retrieval.
 """
 
-import os
+from pathlib import Path
 
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 
-from config.settings import CHROMA_DB_PATH
 from services.embeddings import embeddings
 
 
+def _vector_store_exists(db_path: Path) -> bool:
+    """
+    Return whether a persisted Chroma
+    vector store exists.
+
+    Args:
+        db_path:
+            Path to the vector database.
+
+    Returns:
+        True if the vector store exists,
+        otherwise False.
+    """
+
+    return db_path.is_dir() and (db_path / "chroma.sqlite3").is_file()
+
+
 def get_vector_store(
-    chunks: list[Document] | None = None,
+    db_path: Path,
+    documents: list[Document] | None = None,
 ) -> Chroma:
     """
     Load an existing Chroma vector store.
 
-    If the database does not exist,
-    create a new one using the
-    supplied document chunks.
+    If the vector database does not exist,
+    create a new one using the supplied
+    documents.
 
     Args:
-        chunks:
-            Document chunks used to create
-            the vector store if it does not
+        db_path:
+            Path to the vector database.
+
+        documents:
+            Documents used to create the
+            vector store if it does not
             already exist.
 
     Returns:
@@ -35,29 +55,27 @@ def get_vector_store(
 
     Raises:
         ValueError:
-            If the database does not exist
-            and no document chunks are
+            If the vector database does not
+            exist and no documents are
             provided.
     """
 
-    if os.path.exists(CHROMA_DB_PATH):
+    if _vector_store_exists(db_path):
 
-        print("📂 Loading existing vector database...")
+        print(f"📂 Loading vector database: {db_path.name}")
 
         return Chroma(
-            persist_directory=CHROMA_DB_PATH,
+            persist_directory=str(db_path),
             embedding_function=embeddings,
         )
 
-    print("🆕 Creating new vector database...")
+    if documents is None:
+        raise ValueError("Documents are required when creating a new vector database.")
 
-    if chunks is None:
-        raise ValueError(
-            "Document chunks are required " "when creating a new vector database."
-        )
+    print(f"🆕 Creating vector database: {db_path.name}")
 
     return Chroma.from_documents(
-        documents=chunks,
+        documents=documents,
         embedding=embeddings,
-        persist_directory=CHROMA_DB_PATH,
+        persist_directory=str(db_path),
     )

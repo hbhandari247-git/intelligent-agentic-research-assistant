@@ -8,7 +8,7 @@ from models.citation import Citation
 from models.confidence import Confidence
 from models.source import Source
 
-NOT_FOUND_MESSAGE = "I couldn't find relevant information to answer your question."
+_NOT_FOUND_MESSAGE = "I couldn't find relevant information " "to answer your question."
 
 
 @dataclass(slots=True)
@@ -25,15 +25,20 @@ class Response:
     @property
     def found(self) -> bool:
         """
-        Whether the response contains
-        a valid answer.
+        Return whether the response
+        contains a valid answer.
         """
+
         return self.source is not Source.NONE
 
     @classmethod
     def empty(cls) -> "Response":
+        """
+        Return an empty response.
+        """
+
         return cls(
-            answer=NOT_FOUND_MESSAGE,
+            answer=_NOT_FOUND_MESSAGE,
             source=Source.NONE,
             confidence=Confidence.NONE,
             citations=[],

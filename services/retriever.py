@@ -17,7 +17,7 @@ def retrieve_documents(
 ) -> list[tuple[Document, float]]:
     """
     Retrieve the most relevant document chunks
-    along with their retrieval distances.
+    together with their retrieval distances.
 
     Args:
         vector_store:
@@ -29,7 +29,7 @@ def retrieve_documents(
     Returns:
         A list of tuples containing:
 
-        - Document
+        - Retrieved document
         - Retrieval distance
 
         Lower distances indicate
@@ -37,6 +37,6 @@ def retrieve_documents(
     """
 
     return vector_store.similarity_search_with_score(
-        question,
+        query=question,
         k=TOP_K,
     )

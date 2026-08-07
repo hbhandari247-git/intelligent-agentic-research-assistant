@@ -5,8 +5,6 @@ This module converts source-specific retrieval
 results into normalized retrieval candidates.
 """
 
-from pathlib import Path
-
 from langchain_core.documents import Document
 
 from models.citation import Citation
@@ -19,23 +17,24 @@ def build_pdf_candidates(
     retrieved_documents: list[tuple[Document, float]],
 ) -> list[RetrievalCandidate]:
     """
-    Convert retrieved PDF documents into
+    Convert retrieved documents into
     normalized retrieval candidates.
     """
 
-    candidates = []
+    candidates: list[RetrievalCandidate] = []
 
     for document, score in retrieved_documents:
-        source = document.metadata.get(
-            "source",
-            "PDF",
+
+        metadata = document.metadata
+
+        source_file = metadata.get(
+            "source_file",
+            metadata.get("source", "Document"),
         )
 
-        page = document.metadata.get(
-            "page",
-        )
+        page = metadata.get("page")
 
-        location = f"Page {page + 1}" if isinstance(page, int) else "PDF"
+        location = f"Page {page + 1}" if isinstance(page, int) else "Document"
 
         candidates.append(
             RetrievalCandidate(
@@ -43,7 +42,7 @@ def build_pdf_candidates(
                 source=Source.PDF,
                 score=score,
                 citation=Citation(
-                    title=Path(source).name,
+                    title=source_file,
                     location=location,
                 ),
             )

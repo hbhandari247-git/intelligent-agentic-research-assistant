@@ -5,17 +5,21 @@ This module contains all configurable
 constants used throughout the application.
 """
 
+from pathlib import Path
+
 # -----------------------------
 # Documents
 # -----------------------------
 
-PDF_PATH = "data/Attention_is_All_You_Need.pdf"
+DATA_DIR: Path = Path("data")
+
+SUPPORTED_DOCUMENT_TYPES: tuple[str, ...] = (".pdf",)
 
 # -----------------------------
 # Vector Database
 # -----------------------------
 
-CHROMA_DB_PATH = "db"
+CHROMA_DB_PATH: Path = Path("db")
 
 # -----------------------------
 # Retrieval
@@ -66,3 +70,9 @@ HYBRID_TOP_K = 5
 # -----------------------------
 
 MAX_CONVERSATION_MESSAGES = 10
+
+# -----------------------------
+# Index Management
+# -----------------------------
+
+INDEX_MANIFEST_FILENAME = "manifest.json"

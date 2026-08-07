@@ -22,21 +22,22 @@ def fuse_context(
     systems remains distinguishable.
     """
 
-    context_blocks = []
+    context_blocks: list[str] = []
 
     for ranked_candidate in ranked_candidates:
+
         candidate = ranked_candidate.candidate
         citation = candidate.citation
 
-        source_label = candidate.source.value
-
-        header_parts = [
-            source_label,
-            citation.title,
-            citation.location,
-        ]
-
-        header = " | ".join(part for part in header_parts if part)
+        header = " | ".join(
+            part
+            for part in (
+                candidate.source.value,
+                citation.title,
+                citation.location,
+            )
+            if part
+        )
 
         context_blocks.append(f"[{header}]\n{candidate.content}")
 
@@ -54,10 +55,18 @@ def build_citations(
     relevance order.
     """
 
-    citations = []
-    seen = set()
+    citations: list[Citation] = []
+
+    seen: set[
+        tuple[
+            str,
+            str,
+            str | None,
+        ]
+    ] = set()
 
     for ranked_candidate in ranked_candidates:
+
         citation = ranked_candidate.candidate.citation
 
         key = (
@@ -70,6 +79,7 @@ def build_citations(
             continue
 
         seen.add(key)
+
         citations.append(citation)
 
     return citations

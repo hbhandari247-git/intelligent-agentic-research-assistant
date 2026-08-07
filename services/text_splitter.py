@@ -23,9 +23,12 @@ def split_documents(
     """
     Split documents into smaller chunks.
 
+    Document metadata is preserved for every
+    generated chunk.
+
     Args:
         documents:
-            Documents loaded from the PDF.
+            Documents to split.
 
     Returns:
         A list of chunked documents.

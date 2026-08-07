@@ -68,6 +68,11 @@ The current implementation provides:
 -   ⚙️ Centralized configuration management
 -   🔐 Centralized environment initialization
 -   📦 Persistent vector database
+-   📚 Multiple document collections
+-   🗂️ Dynamic collection discovery
+-   ♻️ Automatic document index rebuilding
+-   📄 Generic document loading pipeline
+-   📑 Manifest-based index synchronization
 -   📝 Fully typed and documented codebase
 -   💬 Context-aware multi-turn conversations
 -   🧠 Bounded in-session conversation memory
@@ -82,7 +87,7 @@ The current implementation provides:
 
 # 🎯 Current Release
 
-## **v2.6.0 -- Conversation Memory & Context-Aware Multi-Turn Interactions**
+## **v2.7.0 -- Multi-Collection Knowledge Base & Dynamic Indexing**
 
 ### ✨ Highlights
 
@@ -94,18 +99,32 @@ The current implementation provides:
 -   🧹 `clear` command for resetting session memory
 -   🏗️ Dedicated `ConversationService` orchestration layer
 -   🧩 Typed `ConversationMessage` and `RewriteResult` models
--   🧪 Deterministic memory unit tests plus Groq and Tavily integration tests
--   🔀 Full compatibility with the v2.5.0 adaptive hybrid retrieval pipeline
+-   🧪 Deterministic memory unit tests plus Groq and Tavily integration
+    tests
+-   🔀 Full compatibility with the v2.5.0 adaptive hybrid retrieval
+    pipeline
 
 ### What's New in v2.6.0?
 
-v2.6.0 adds a conversational layer in front of the adaptive hybrid RAG pipeline. The assistant now retains a bounded window of recent user and assistant messages and uses that history to resolve follow-up questions before retrieval.
+v2.6.0 adds a conversational layer in front of the adaptive hybrid RAG
+pipeline. The assistant now retains a bounded window of recent user and
+assistant messages and uses that history to resolve follow-up questions
+before retrieval.
 
-For example, after answering `Who is the CEO of OpenAI?`, the follow-up `What company does he lead?` can be rewritten as a standalone question such as `What company does Sam Altman lead?` before entering retrieval.
+For example, after answering `Who is the CEO of OpenAI?`, the follow-up
+`What company does he lead?` can be rewritten as a standalone question
+such as `What company does Sam Altman lead?` before entering retrieval.
 
-The rewriter also detects questions that depend on missing context. After memory is cleared, an ambiguous question such as `What company does he lead?` is stopped before Chroma or Tavily retrieval and the assistant asks the user to clarify the missing reference instead of searching an underspecified query.
+The rewriter also detects questions that depend on missing context.
+After memory is cleared, an ambiguous question such as
+`What company does he lead?` is stopped before Chroma or Tavily
+retrieval and the assistant asks the user to clarify the missing
+reference instead of searching an underspecified query.
 
-Conversation behavior is coordinated by `ConversationService`, keeping the command-line interface focused on input, commands, and response rendering while preserving the existing PDF-only, Hybrid, and Web-only retrieval strategies introduced in v2.5.0.
+Conversation behavior is coordinated by `ConversationService`, keeping
+the command-line interface focused on input, commands, and response
+rendering while preserving the existing PDF-only, Hybrid, and Web-only
+retrieval strategies introduced in v2.5.0.
 
 ------------------------------------------------------------------------
 
@@ -185,23 +204,35 @@ Conversation behavior is coordinated by `ConversationService`, keeping the comma
                          Update ConversationMemory
 ```
 
-The application separates conversational orchestration from retrieval and generation responsibilities.
+The application separates conversational orchestration from retrieval
+and generation responsibilities.
 
--   **Conversation Service** coordinates context resolution, retrieval routing, and memory updates.
--   **Conversation Memory** stores a bounded in-session history of typed user and assistant messages.
--   **Question Rewriter** converts contextual follow-ups into standalone retrieval questions and identifies missing conversational context.
+-   **Conversation Service** coordinates context resolution, retrieval
+    routing, and memory updates.
+-   **Conversation Memory** stores a bounded in-session history of typed
+    user and assistant messages.
+-   **Question Rewriter** converts contextual follow-ups into standalone
+    retrieval questions and identifies missing conversational context.
 -   **Retriever** retrieves relevant PDF evidence from ChromaDB.
--   **Web Search** retrieves external evidence through Tavily when required.
--   **Evaluator** interprets source-specific retrieval scores and assigns confidence.
--   **Retrieval Strategy** selects PDF-only, Hybrid, or Web-only behavior.
--   **Candidate Builder** converts source-specific results into a common representation.
+-   **Web Search** retrieves external evidence through Tavily when
+    required.
+-   **Evaluator** interprets source-specific retrieval scores and
+    assigns confidence.
+-   **Retrieval Strategy** selects PDF-only, Hybrid, or Web-only
+    behavior.
+-   **Candidate Builder** converts source-specific results into a common
+    representation.
 -   **Reranker** compares PDF and web candidates in one embedding space.
--   **Context Fusion** combines the strongest ranked evidence while preserving citations.
+-   **Context Fusion** combines the strongest ranked evidence while
+    preserving citations.
 -   **Generator** produces a grounded answer from the fused context.
--   **Router** delegates resolved standalone questions to the hybrid RAG workflow.
--   **Response models** provide a consistent answer, source, confidence, and citation interface.
+-   **Router** delegates resolved standalone questions to the hybrid RAG
+    workflow.
+-   **Response models** provide a consistent answer, source, confidence,
+    and citation interface.
 
-PDF distance and Tavily relevance values are never directly compared because they have different score semantics.
+PDF distance and Tavily relevance values are never directly compared
+because they have different score semantics.
 
 ------------------------------------------------------------------------
 
@@ -264,30 +295,43 @@ intelligent-agentic-research-assistant/
 
 ### Directory Overview
 
-| Directory | Purpose |
-| --- | --- |
-| `config/` | Centralized application configuration |
-| `models/` | Domain models used throughout the application |
-| `services/` | Business logic and application services |
-| `db/` | Persistent Chroma vector database |
-| `data/` | PDF documents used as the local knowledge base |
-| `tests/` | Deterministic unit tests and opt-in external integration tests |
+  -----------------------------------------------------------------------
+  Directory                           Purpose
+  ----------------------------------- -----------------------------------
+  `config/`                           Centralized application
+                                      configuration
+
+  `models/`                           Domain models used throughout the
+                                      application
+
+  `services/`                         Business logic and application
+                                      services
+
+  `db/`                               Persistent Chroma vector databases
+                                      (one per collection)
+
+  `data/`                             Collection-based local knowledge
+                                      base
+
+  `tests/`                            Deterministic unit tests and opt-in
+                                      external integration tests
+  -----------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 
 # ⚙️ Technology Stack
 
-| Technology | Purpose |
-| --- | --- |
-| **Python 3.12** | Core programming language |
-| **LangChain** | LLM application framework |
-| **LCEL** | Pipeline composition and orchestration |
-| **ChromaDB** | Persistent vector database |
-| **Hugging Face** | Sentence Transformer embeddings |
-| **Groq** | Large Language Model inference |
-| **Tavily** | AI-powered web search |
-| **PyPDF** | PDF document processing |
-| **python-dotenv** | Environment variable management |
+  Technology          Purpose
+  ------------------- ----------------------------------------
+  **Python 3.12**     Core programming language
+  **LangChain**       LLM application framework
+  **LCEL**            Pipeline composition and orchestration
+  **ChromaDB**        Persistent vector database
+  **Hugging Face**    Sentence Transformer embeddings
+  **Groq**            Large Language Model inference
+  **Tavily**          AI-powered web search
+  **PyPDF**           PDF document processing
+  **python-dotenv**   Environment variable management
 
 ------------------------------------------------------------------------
 
@@ -409,7 +453,8 @@ python app.py
 During a session:
 
 -   Type `exit` to quit.
--   Type `clear` to reset conversation memory without restarting the application.
+-   Type `clear` to reset conversation memory without restarting the
+    application.
 
 ------------------------------------------------------------------------
 
@@ -460,7 +505,9 @@ I need more context to understand your question. Please clarify what
 you are referring to.
 ```
 
-The follow-up question is rewritten internally for retrieval while the original user message is retained in conversation memory. After `clear`, the missing reference is detected before retrieval.
+The follow-up question is rewritten internally for retrieval while the
+original user message is retained in conversation memory. After `clear`,
+the missing reference is detected before retrieval.
 
 ------------------------------------------------------------------------
 
@@ -500,7 +547,8 @@ config/settings.py
 ### Conversation Memory
 
 -   Maximum retained conversation messages (`MAX_CONVERSATION_MESSAGES`)
--   The limit must be positive and even so normal history windows preserve complete user/assistant exchanges
+-   The limit must be positive and even so normal history windows
+    preserve complete user/assistant exchanges
 
 ### Storage
 
@@ -514,29 +562,38 @@ without requiring changes throughout the codebase.
 
 # 🧠 How It Works
 
-The assistant combines a conversational resolution layer with the adaptive hybrid retrieval workflow introduced in v2.5.0.
+The assistant combines a conversational resolution layer with the
+adaptive hybrid retrieval workflow introduced in v2.5.0.
 
 ## Step 1 --- User Question
 
-The CLI accepts a natural-language question and passes it to `ConversationService`.
+The CLI accepts a natural-language question and passes it to
+`ConversationService`.
 
 ## Step 2 --- Conversation Context Resolution
 
-Recent bounded conversation history is supplied to the question rewriter. The rewriter determines whether the current question has enough context to be understood.
+Recent bounded conversation history is supplied to the question
+rewriter. The rewriter determines whether the current question has
+enough context to be understood.
 
-If a required conversational reference cannot be resolved, retrieval is skipped and the assistant asks the user to clarify.
+If a required conversational reference cannot be resolved, retrieval is
+skipped and the assistant asks the user to clarify.
 
 ## Step 3 --- Standalone Question Rewriting
 
-Resolved follow-up questions are rewritten into standalone retrieval queries while preserving the user's intent. Standalone questions remain standalone.
+Resolved follow-up questions are rewritten into standalone retrieval
+queries while preserving the user's intent. Standalone questions remain
+standalone.
 
 ## Step 4 --- PDF Semantic Retrieval
 
-The resolved question is embedded and compared against the persistent Chroma vector database to retrieve relevant PDF chunks.
+The resolved question is embedded and compared against the persistent
+Chroma vector database to retrieve relevant PDF chunks.
 
 ## Step 5 --- PDF Retrieval Evaluation
 
-PDF results are evaluated using the configured distance threshold and mapped to a confidence level.
+PDF results are evaluated using the configured distance threshold and
+mapped to a confidence level.
 
 ## Step 6 --- Adaptive Retrieval Strategy
 
@@ -548,11 +605,14 @@ Usable but uncertain evidence  → HYBRID (PDF + Web)
 Unusable PDF evidence          → WEB_ONLY
 ```
 
-This avoids unnecessary web requests when local evidence is already strong.
+This avoids unnecessary web requests when local evidence is already
+strong.
 
 ## Step 7 --- Web Retrieval and Evaluation
 
-Hybrid and Web-only strategies use Tavily. Web results are independently evaluated using web relevance-score semantics. PDF distance scores and Tavily relevance scores are **not directly compared**.
+Hybrid and Web-only strategies use Tavily. Web results are independently
+evaluated using web relevance-score semantics. PDF distance scores and
+Tavily relevance scores are **not directly compared**.
 
 ## Step 8 --- Candidate Normalization
 
@@ -564,27 +624,36 @@ PDF Document + Distance ──┐
 Tavily WebResult ─────────┘
 ```
 
-Each candidate preserves content, source, its original retrieval score, and citation metadata.
+Each candidate preserves content, source, its original retrieval score,
+and citation metadata.
 
 ## Step 9 --- Cross-Source Reranking
 
-All candidates are embedded using the same Hugging Face embedding model and compared with the standalone question using cosine similarity.
+All candidates are embedded using the same Hugging Face embedding model
+and compared with the standalone question using cosine similarity.
 
 ## Step 10 --- Top-K Evidence Selection
 
-Only the strongest reranked candidates are retained according to `HYBRID_TOP_K`. The reranker score orders evidence; it is not used as the final confidence score.
+Only the strongest reranked candidates are retained according to
+`HYBRID_TOP_K`. The reranker score orders evidence; it is not used as
+the final confidence score.
 
 ## Step 11 --- Context Fusion
 
-Ranked PDF and web evidence is fused into structured context while preserving source boundaries and citation metadata.
+Ranked PDF and web evidence is fused into structured context while
+preserving source boundaries and citation metadata.
 
 ## Step 12 --- Grounded Response Generation
 
-The Groq LLM generates an answer using the fused retrieval context. If neither PDF nor web retrieval provides acceptable evidence, the assistant returns the Null Object response instead of guessing.
+The Groq LLM generates an answer using the fused retrieval context. If
+neither PDF nor web retrieval provides acceptable evidence, the
+assistant returns the Null Object response instead of guessing.
 
 ## Step 13 --- Memory Update
 
-After a resolved interaction completes, the original user question and generated assistant answer are stored in bounded in-session memory. Internal rewritten questions are not stored as user messages.
+After a resolved interaction completes, the original user question and
+generated assistant answer are stored in bounded in-session memory.
+Internal rewritten questions are not stored as user messages.
 
 ## Step 14 --- Structured Response
 
@@ -599,7 +668,8 @@ Every retrieval response contains:
 
 # 🧪 Testing
 
-The project uses pytest for deterministic unit tests and opt-in external integration tests.
+The project uses pytest for deterministic unit tests and opt-in external
+integration tests.
 
 Run the normal test suite:
 
@@ -607,46 +677,52 @@ Run the normal test suite:
 pytest -v
 ```
 
-LLM and Tavily tests are skipped by default so normal tests do not depend on external API calls. To explicitly run all external integration tests:
+LLM and Tavily tests are skipped by default so normal tests do not
+depend on external API calls. To explicitly run all external integration
+tests:
 
 ``` bash
 RUN_LLM_TESTS=true RUN_TAVILY_TESTS=true pytest -v
 ```
 
-The v2.6.0 validation suite covers bounded memory behavior, context-aware question rewriting, unresolved references, conversational follow-ups, and Tavily result structure/relevance.
+The v2.6.0 validation suite covers bounded memory behavior,
+context-aware question rewriting, unresolved references, conversational
+follow-ups, and Tavily result structure/relevance.
 
 ------------------------------------------------------------------------
 
 # 📦 Release History
 
-  -----------------------------------------------------------------------
-  Version                        Description
-  ------------------------------ ----------------------------------------
-  **v2.6.0**                     Bounded in-session conversation memory,
-                                 context-aware question rewriting, follow-up
-                                 reference resolution, unresolved-context
-                                 detection, memory reset, conversation
-                                 orchestration, and pytest validation
+  ---------------------------------------------------------------------
+  Version                       Description
+  ----------------------------- ---------------------------------------
+  **v2.6.0**                    Bounded in-session conversation memory,
+                                context-aware question rewriting,
+                                follow-up reference resolution,
+                                unresolved-context detection, memory
+                                reset, conversation orchestration, and
+                                pytest validation
 
-  **v2.5.0**                     Adaptive hybrid retrieval, normalized
-                                 cross-source candidates, embedding-based
-                                 reranking, Top-K evidence selection,
-                                 context fusion, and hybrid responses
+  **v2.5.0**                    Adaptive hybrid retrieval, normalized
+                                cross-source candidates,
+                                embedding-based reranking, Top-K
+                                evidence selection, context fusion, and
+                                hybrid responses
 
-  **v2.4.0**                     Confidence-based retrieval evaluation,
-                                 structured response models, citations,
-                                 clean layered architecture, and improved
-                                 answer generation
+  **v2.4.0**                    Confidence-based retrieval evaluation,
+                                structured response models, citations,
+                                clean layered architecture, and
+                                improved answer generation
 
-  **v2.3.0**                     Intelligent PDF-first routing with
-                                 Tavily web fallback
+  **v2.3.0**                    Intelligent PDF-first routing with
+                                Tavily web fallback
 
-  **v2.2.1**                     Centralized environment initialization
-                                 and startup architecture improvements
+  **v2.2.1**                    Centralized environment initialization
+                                and startup architecture improvements
 
-  **v2.2.0**                     Initial stable modular PDF RAG
-                                 implementation
-  -----------------------------------------------------------------------
+  **v2.2.0**                    Initial stable modular PDF RAG
+                                implementation
+  ---------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 
@@ -690,13 +766,16 @@ autonomous research assistant.
 
 ------------------------------------------------------------------------
 
-## 🚀 v2.7.0
+## ✅ v2.7.0
 
-### Knowledge Base
+### Multi-Collection Knowledge Base
 
 -   Multiple PDF collections
--   Dynamic document indexing
--   Metadata filtering
+-   Dynamic collection discovery
+-   Automatic document indexing
+-   Manifest-based index synchronization
+-   Dedicated IndexManager
+-   Collection-aware vector databases
 
 ------------------------------------------------------------------------
 
@@ -842,7 +921,9 @@ accessible.
 
 # 🚀 What's Next?
 
-v2.6.0 establishes the conversational foundation. The next release will focus on expanding the local knowledge base beyond a single document.
+v2.7.0 establishes a scalable multi-collection knowledge base. The next
+release focuses on AI agents capable of planning, tool use, and
+multi-step reasoning.
 
 Upcoming work includes:
 
@@ -856,7 +937,9 @@ Upcoming work includes:
 -   Continuous Evaluation
 -   Longer-term and persistent memory in a future release
 
-The goal is to evolve this repository into a complete **production-quality Agentic AI Research Assistant** while documenting every architectural decision along the way.
+The goal is to evolve this repository into a complete
+**production-quality Agentic AI Research Assistant** while documenting
+every architectural decision along the way.
 
 ------------------------------------------------------------------------
 

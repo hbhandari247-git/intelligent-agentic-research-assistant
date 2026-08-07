@@ -5,38 +5,29 @@ This module prepares everything needed
 before the interactive chat loop begins.
 """
 
-from langchain_chroma import Chroma
-
-from config.settings import PDF_PATH
-from services.document_loader import load_pdf
-from services.text_splitter import split_documents
-from services.vector_store import get_vector_store
+from services.index_manager import IndexManager
 
 
-def initialize_pipeline() -> Chroma:
+def initialize_pipeline() -> IndexManager:
     """
     Initialize the RAG pipeline.
 
     Workflow:
 
-        1. Load the PDF.
-        2. Split it into chunks.
-        3. Create or load the vector database.
+        1. Discover available document collections.
+        2. Initialize the index manager.
 
     Returns:
-        An initialized Chroma vector store.
+        An initialized IndexManager instance.
     """
 
-    print("📄 Loading PDF...")
+    print("📂 Discovering document collections...")
 
-    documents = load_pdf(PDF_PATH)
+    index_manager = IndexManager()
 
-    print("✂️ Splitting document into chunks...")
-
-    chunks = split_documents(documents)
-
-    vector_store = get_vector_store(chunks)
+    if not index_manager.list_collections():
+        print("⚠️ No document collections found.")
 
     print("✅ Pipeline initialized.\n")
 
-    return vector_store
+    return index_manager
