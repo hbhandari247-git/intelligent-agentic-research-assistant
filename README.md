@@ -779,7 +779,7 @@ autonomous research assistant.
 
 ------------------------------------------------------------------------
 
-## 🚀 v2.8.0
+## ✅ v2.8.0
 
 ### Agent Architecture & Tool Calling
 
