@@ -25,7 +25,7 @@ client = TavilyClient(
 )
 
 
-def retrieve_from_web(
+def search_web(
     question: str,
 ) -> list[WebResult]:
     """

@@ -87,7 +87,7 @@ The current implementation provides:
 
 # 🎯 Current Release
 
-## **v2.7.0 -- Multi-Collection Knowledge Base & Dynamic Indexing**
+## **v2.8.0 -- Modular AI Agent Architecture & Tool Calling**
 
 ### ✨ Highlights
 
@@ -781,22 +781,32 @@ autonomous research assistant.
 
 ## 🚀 v2.8.0
 
-### AI Agents
+### Agent Architecture & Tool Calling
 
--   Tool Calling
--   ReAct Agents
--   Function Calling
--   External API integrations
+-   Modular AI Agent architecture
+-   Agent state management
+-   Tool registry
+-   Tool planner
+-   Tool runtime
+-   Tool execution pipeline
+-   PDF knowledge tool
+-   Web search tool
+-   Knowledge abstraction layer
+-   External Tavily web search integration
+-   Foundation for ReAct and function calling
 
 ------------------------------------------------------------------------
 
 ## 🚀 v2.9.0
 
-### Agent Workflows
+### Intelligent Agents
 
--   LangGraph workflows
--   Planning and execution
--   Multi-step reasoning
+-   LLM-powered tool selection
+-   Function calling
+-   ReAct reasoning
+-   Dynamic tool execution
+-   Observation handling
+-   Multi-step planning
 
 ------------------------------------------------------------------------
 
@@ -921,9 +931,7 @@ accessible.
 
 # 🚀 What's Next?
 
-v2.7.0 establishes a scalable multi-collection knowledge base. The next
-release focuses on AI agents capable of planning, tool use, and
-multi-step reasoning.
+v2.8.0 introduces a modular AI Agent architecture with tool calling, an agent planner, tool runtime, tool execution pipeline, and dedicated PDF and Web tools. The next release focuses on intelligent planning through LLM-powered tool selection, ReAct reasoning, and function calling.
 
 Upcoming work includes:
 

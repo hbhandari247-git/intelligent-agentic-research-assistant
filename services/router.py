@@ -8,7 +8,7 @@ through the hybrid retrieval workflow.
 from langchain_chroma import Chroma
 
 from models.response import Response
-from services.hybrid_rag import answer_from_hybrid
+from services.hybrid_workflow import execute_hybrid_workflow
 
 
 def route_question(
@@ -34,7 +34,7 @@ def route_question(
         The final structured response.
     """
 
-    return answer_from_hybrid(
+    return execute_hybrid_workflow(
         vector_store,
         question,
     )

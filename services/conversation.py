@@ -9,9 +9,9 @@ and memory updates.
 from langchain_chroma import Chroma
 
 from models.response import Response
+from services.agent import answer_question
 from services.conversation_memory import ConversationMemory
 from services.question_rewriter import rewrite_question
-from services.router import route_question
 
 
 class ConversationService:
@@ -71,7 +71,7 @@ class ConversationService:
         if not rewrite_result.resolved:
             return None
 
-        response = route_question(
+        response = answer_question(
             self._vector_store,
             rewrite_result.question,
         )
