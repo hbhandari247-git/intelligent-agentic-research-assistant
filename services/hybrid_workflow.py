@@ -4,15 +4,19 @@ Hybrid workflow.
 This module executes the hybrid
 knowledge retrieval workflow for
 the AI agent.
+
+This workflow is retained as a
+standalone retrieval workflow.
+The primary agent path now uses
+the agentic tool execution workflow.
 """
 
 from langchain_chroma import Chroma
 
 from models.response import Response
 from models.retrieval_strategy import RetrievalStrategy
-from models.source import Source
+from models.tool_result import ToolResult
 from services.evaluator import (
-    combine_confidence,
     evaluate_pdf_retrieval,
     evaluate_web_retrieval,
 )
@@ -28,6 +32,7 @@ from services.response_builder import (
 from services.retrieval_strategy import (
     determine_retrieval_strategy,
 )
+from services.tool_registry import SEARCH_PDF_TOOL, SEARCH_WEB_TOOL
 
 
 def execute_hybrid_workflow(
@@ -38,16 +43,12 @@ def execute_hybrid_workflow(
     Answer a question using adaptive
     hybrid retrieval.
 
-    The workflow:
+    This workflow is retained as a
+    standalone retrieval workflow.
 
-        1. Retrieves PDF evidence.
-        2. Evaluates PDF retrieval quality.
-        3. Selects a retrieval strategy.
-        4. Retrieves web evidence when needed.
-        5. Reranks candidates in a common
-           embedding space.
-        6. Fuses the strongest evidence.
-        7. Generates a grounded answer.
+    The primary agent workflow now
+    performs tool selection and tool
+    execution independently.
 
     Args:
         vector_store:
@@ -65,8 +66,6 @@ def execute_hybrid_workflow(
         question,
     )
 
-    pdf_candidates = pdf_knowledge.candidates
-
     pdf_evaluation = evaluate_pdf_retrieval(
         pdf_knowledge.retrieved_documents,
     )
@@ -78,16 +77,17 @@ def execute_hybrid_workflow(
     if strategy is RetrievalStrategy.PDF_ONLY:
         return build_response(
             question=question,
-            candidates=pdf_candidates,
-            source=Source.PDF,
-            confidence=pdf_evaluation.confidence,
+            tool_results=(
+                ToolResult(
+                    tool=SEARCH_PDF_TOOL,
+                    knowledge=pdf_knowledge,
+                ),
+            ),
         )
 
     web_knowledge = search_web_knowledge(
         question,
     )
-
-    web_candidates = web_knowledge.candidates
 
     web_evaluation = evaluate_web_retrieval(
         web_knowledge.results,
@@ -97,9 +97,12 @@ def execute_hybrid_workflow(
         if strategy is RetrievalStrategy.HYBRID:
             return build_response(
                 question=question,
-                candidates=pdf_candidates,
-                source=Source.PDF,
-                confidence=pdf_evaluation.confidence,
+                tool_results=(
+                    ToolResult(
+                        tool=SEARCH_PDF_TOOL,
+                        knowledge=pdf_knowledge,
+                    ),
+                ),
             )
 
         return Response.empty()
@@ -107,21 +110,24 @@ def execute_hybrid_workflow(
     if strategy is RetrievalStrategy.WEB_ONLY:
         return build_response(
             question=question,
-            candidates=web_candidates,
-            source=Source.WEB,
-            confidence=web_evaluation.confidence,
+            tool_results=(
+                ToolResult(
+                    tool=SEARCH_WEB_TOOL,
+                    knowledge=web_knowledge,
+                ),
+            ),
         )
-
-    hybrid_candidates = pdf_candidates + web_candidates
-
-    confidence = combine_confidence(
-        pdf_evaluation.confidence,
-        web_evaluation.confidence,
-    )
 
     return build_response(
         question=question,
-        candidates=hybrid_candidates,
-        source=Source.HYBRID,
-        confidence=confidence,
+        tool_results=(
+            ToolResult(
+                tool=SEARCH_PDF_TOOL,
+                knowledge=pdf_knowledge,
+            ),
+            ToolResult(
+                tool=SEARCH_WEB_TOOL,
+                knowledge=web_knowledge,
+            ),
+        ),
     )

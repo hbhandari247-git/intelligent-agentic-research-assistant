@@ -64,6 +64,10 @@ The current implementation provides:
 -   📊 Confidence-based retrieval evaluation
 -   📑 PDF, Web, and Hybrid source attribution with citations
 -   🧩 Structured response models
+-   🤖 LLM-powered registry-driven agent planning
+-   🔧 Dynamic tool registry and execution adapters
+-   🔄 Bounded multi-step agent loop with observations
+-   🛡️ Duplicate-call and per-tool execution safeguards
 -   🏗️ Clean layered architecture
 -   ⚙️ Centralized configuration management
 -   🔐 Centralized environment initialization
@@ -87,154 +91,176 @@ The current implementation provides:
 
 # 🎯 Current Release
 
-## **v2.8.0 -- Modular AI Agent Architecture & Tool Calling**
+## **v2.9.0 -- Intelligent Agentic Retrieval**
 
 ### ✨ Highlights
 
+-   🤖 LLM-powered tool selection from a dynamic tool registry
+-   🧩 Registry-driven tool capabilities and metadata
+-   🔧 Generic tool-call validation before execution
+-   🔄 ReAct-style planner → tool → observation → follow-up loop
+-   🧠 Multi-step retrieval with bounded agent iterations
+-   🛡️ Per-tool execution limits and duplicate-call prevention
+-   🌐 Improved current-information Web query construction
+-   🔎 Deeper Tavily Web retrieval using advanced search
+-   🔀 Generic PDF, Web, and Hybrid evidence orchestration
+-   🎯 Cross-source semantic reranking with shared embeddings
+-   🏆 Source-aware Hybrid Top-K evidence selection
+-   🧬 Structured context fusion with citation preservation
+-   🛡️ Grounded answer generation that refuses unsupported claims
 -   💬 Context-aware multi-turn conversations
--   🧠 Bounded in-session conversation memory
--   ✍️ Follow-up questions rewritten into standalone retrieval queries
+-   ✍️ Standalone follow-up question rewriting
 -   🔗 Pronoun and conversational reference resolution
--   🛡️ Unresolved-context detection before PDF or Web retrieval
 -   🧹 `clear` command for resetting session memory
--   🏗️ Dedicated `ConversationService` orchestration layer
--   🧩 Typed `ConversationMessage` and `RewriteResult` models
--   🧪 Deterministic memory unit tests plus Groq and Tavily integration
-    tests
--   🔀 Full compatibility with the v2.5.0 adaptive hybrid retrieval
-    pipeline
+-   🏗️ Modular agent, tool registry, runtime, and execution layers
+-   🔄 Architecture designed to support additional tools without changing
+    core agent orchestration
 
-### What's New in v2.6.0?
+### What's New in v2.9.0?
 
-v2.6.0 adds a conversational layer in front of the adaptive hybrid RAG
-pipeline. The assistant now retains a bounded window of recent user and
-assistant messages and uses that history to resolve follow-up questions
-before retrieval.
+v2.9.0 completes the transition from a fixed retrieval workflow into a
+registry-driven agentic retrieval architecture.
 
-For example, after answering `Who is the CEO of OpenAI?`, the follow-up
-`What company does he lead?` can be rewritten as a standalone question
-such as `What company does Sam Altman lead?` before entering retrieval.
+The agent now receives a catalog of registered tools and asks the language
+model to select the minimum set of tools required for the user's question.
+Selected calls are validated against the registry before execution, so the
+agent does not need PDF- or Web-specific routing logic.
 
-The rewriter also detects questions that depend on missing context.
-After memory is cleared, an ambiguous question such as
-`What company does he lead?` is stopped before Chroma or Tavily
-retrieval and the assistant asks the user to clarify the missing
-reference instead of searching an underspecified query.
+After execution, tool observations are fed back into the planner. When the
+initial retrieval does not provide usable evidence, the planner may request
+a bounded follow-up retrieval step. Duplicate calls and per-tool execution
+limits prevent unnecessary repeated work.
 
-Conversation behavior is coordinated by `ConversationService`, keeping
-the command-line interface focused on input, commands, and response
-rendering while preserving the existing PDF-only, Hybrid, and Web-only
-retrieval strategies introduced in v2.5.0.
+Web retrieval was also improved for current-information questions. The
+planner constructs more explicit, time-aware queries when appropriate,
+while the Web search service remains generic and simply executes the query
+through Tavily. This keeps search behavior extensible without embedding
+domain-specific rules into the Web service.
 
-------------------------------------------------------------------------
+The final answer remains strictly grounded in retrieved evidence. If the
+available evidence cannot establish an important part of the question, the
+generator explicitly reports the limitation rather than filling the gap
+with unsupported model knowledge.
 
 # 🏛️ System Architecture
 
 ``` text
-                              User Question
-                                   │
-                                   ▼
-                                  app.py
-                                   │
-                                   ▼
-                         ConversationService
-                         ┌─────────┴─────────┐
-                         │                   │
-                         ▼                   ▼
-                 ConversationMemory   Question Rewriter
-                         │                   │
-                         │             RewriteResult
-                         │                   │
-                         └─────────┬─────────┘
-                                   │
-                         resolved? │
-                    ┌──────────────┴──────────────┐
-                    │                             │
-                    ▼                             ▼
-               unresolved                    resolved
-                    │                             │
-                    ▼                             ▼
-          Ask user to clarify              route_question()
-                                                  │
-                                                  ▼
-                                         answer_from_hybrid()
-                                                  │
-                                                  ▼
-                                      PDF Retrieval + Evaluation
-                                                  │
-                                                  ▼
-                                         Retrieval Strategy
-                                  ┌───────────────┼───────────────┐
-                                  ▼               ▼               ▼
-                               PDF_ONLY         HYBRID          WEB_ONLY
-                                  │               │               │
-                                  │               ▼               ▼
-                                  │        Tavily Web Search  Tavily Web Search
-                                  └───────────────┼───────────────┘
-                                                  ▼
-                                      Candidate Normalization
-                                       RetrievalCandidate[]
-                                                  │
-                                                  ▼
-                                  Common Embedding-Space Reranker
-                                                  │
-                                                  ▼
-                                         RankedCandidate[]
-                                                  │
-                                                  ▼
-                                           HYBRID_TOP_K
-                                                  │
-                                                  ▼
-                                          Context Fusion
-                                      ┌───────────┴───────────┐
-                                      ▼                       ▼
-                                   Context                 Citations
-                                      │
-                                      ▼
-                                generate_answer()
-                                      │
-                                      ▼
-                                   Groq LLM
-                                      │
-                                      ▼
+                               User Question
+                                    │
+                                    ▼
+                                   app.py
+                                    │
+                                    ▼
+                          ConversationService
+                          ┌─────────┴─────────┐
+                          │                   │
+                          ▼                   ▼
+                  ConversationMemory   Question Rewriter
+                          │                   │
+                          │             RewriteResult
+                          │                   │
+                          └─────────┬─────────┘
+                                    │
+                              resolved?
+                         ┌──────────┴──────────┐
+                         │                     │
+                         ▼                     ▼
+                    unresolved              resolved
+                         │                     │
+                         ▼                     ▼
+                  Ask user to clarify    Agent Orchestrator
+                                               │
+                                               ▼
+                                        Tool Selector
+                                               │
+                                               ▼
+                                        Tool Registry
+                                               │
+                         ┌─────────────────────┼─────────────────────┐
+                         ▼                     ▼                     ▼
+                    PDF Tool              Web Tool             Future Tools
+                         │                     │                     │
+                         └─────────────────────┼─────────────────────┘
+                                               ▼
+                                        Tool Executor
+                                               │
+                                               ▼
+                                          Observation
+                                               │
+                                               ▼
+                                      Follow-up Planner
+                                               │
+                                  ┌────────────┴────────────┐
+                                  │                         │
+                                  ▼                         ▼
+                              More tools                 Stop
+                                  │                         │
+                                  └────────────┬────────────┘
+                                               ▼
+                                      Retrieval Candidates
+                                               │
+                                               ▼
+                                   Cross-Source Reranker
+                                               │
+                                               ▼
+                                         HYBRID_TOP_K
+                                               │
+                                               ▼
+                                        Context Fusion
+                                       ┌────────┴────────┐
+                                       ▼                 ▼
+                                    Context           Citations
+                                       │
+                                       ▼
+                                 Grounded Generator
+                                       │
+                                       ▼
+                                    Groq LLM
+                                       │
+                                       ▼
                                     Response
                          (Answer • Source • Confidence • Citations)
-                                      │
-                                      ▼
-                         Update ConversationMemory
+                                       │
+                                       ▼
+                              Update ConversationMemory
 ```
 
-The application separates conversational orchestration from retrieval
-and generation responsibilities.
+The application separates conversational orchestration, agent planning,
+tool execution, retrieval, evidence ranking, and answer generation.
 
--   **Conversation Service** coordinates context resolution, retrieval
-    routing, and memory updates.
+-   **Conversation Service** coordinates context resolution and memory
+    updates.
 -   **Conversation Memory** stores a bounded in-session history of typed
     user and assistant messages.
 -   **Question Rewriter** converts contextual follow-ups into standalone
     retrieval questions and identifies missing conversational context.
--   **Retriever** retrieves relevant PDF evidence from ChromaDB.
--   **Web Search** retrieves external evidence through Tavily when
-    required.
--   **Evaluator** interprets source-specific retrieval scores and
-    assigns confidence.
--   **Retrieval Strategy** selects PDF-only, Hybrid, or Web-only
-    behavior.
+-   **Agent Orchestrator** coordinates planning, tool execution,
+    observations, and bounded follow-up planning.
+-   **Tool Selector** builds its planning catalog dynamically from the
+    registered tools instead of hardcoding PDF or Web routing.
+-   **Tool Registry** describes available tools, their arguments, scope,
+    selection guidance, and current-information requirements.
+-   **Tool Executor** maps registered tools to their implementation
+    adapters.
+-   **PDF Tool** retrieves local evidence from the selected Chroma
+    collection.
+-   **Web Tool** retrieves external evidence through the generic Tavily
+    search service.
 -   **Candidate Builder** converts source-specific results into a common
-    representation.
--   **Reranker** compares PDF and web candidates in one embedding space.
+    `RetrievalCandidate` representation.
+-   **Reranker** compares PDF and Web candidates in one embedding space.
 -   **Context Fusion** combines the strongest ranked evidence while
     preserving citations.
 -   **Generator** produces a grounded answer from the fused context.
--   **Router** delegates resolved standalone questions to the hybrid RAG
-    workflow.
 -   **Response models** provide a consistent answer, source, confidence,
     and citation interface.
 
+The agent is intentionally registry-driven. Adding a new retrieval tool
+should primarily require registering its metadata and executor rather than
+changing the core agent orchestration.
+
 PDF distance and Tavily relevance values are never directly compared
 because they have different score semantics.
-
-------------------------------------------------------------------------
 
 # 📁 Project Structure
 
@@ -248,19 +274,25 @@ intelligent-agentic-research-assistant/
 ├── db/
 ├── models/
 │   ├── __init__.py
+│   ├── agent_state.py
 │   ├── citation.py
-│   ├── conversation_message.py
 │   ├── confidence.py
+│   ├── conversation_message.py
 │   ├── ranked_candidate.py
 │   ├── response.py
 │   ├── rewrite_result.py
 │   ├── retrieval_candidate.py
 │   ├── retrieval_evaluation.py
-│   ├── retrieval_strategy.py
 │   ├── source.py
+│   ├── tool.py
+│   ├── tool_call.py
+│   ├── tool_result.py
+│   ├── tool_runtime.py
 │   └── web_result.py
 ├── services/
 │   ├── __init__.py
+│   ├── agent.py
+│   ├── agent_planner.py
 │   ├── candidate_builder.py
 │   ├── context_fusion.py
 │   ├── conversation.py
@@ -269,24 +301,25 @@ intelligent-agentic-research-assistant/
 │   ├── embeddings.py
 │   ├── evaluator.py
 │   ├── generator.py
-│   ├── hybrid_rag.py
+│   ├── knowledge/
+│   │   ├── pdf.py
+│   │   └── web.py
 │   ├── llm.py
 │   ├── pipeline.py
 │   ├── question_rewriter.py
-│   ├── rag.py
 │   ├── reranker.py
-│   ├── retrieval_strategy.py
+│   ├── response_builder.py
 │   ├── retriever.py
-│   ├── router.py
 │   ├── text_splitter.py
+│   ├── tool_executor.py
+│   ├── tool_registry.py
+│   ├── tool_selector.py
+│   ├── tools/
+│   │   ├── pdf_tool.py
+│   │   └── web_tool.py
 │   ├── vector_store.py
-│   ├── web_rag.py
 │   └── web_search.py
 ├── tests/
-│   ├── __init__.py
-│   ├── test_conversation_memory.py
-│   ├── test_rewriter.py
-│   └── test_tavily.py
 ├── requirements.txt
 ├── README.md
 ├── LICENSE
@@ -301,11 +334,16 @@ intelligent-agentic-research-assistant/
   `config/`                           Centralized application
                                       configuration
 
-  `models/`                           Domain models used throughout the
-                                      application
+  `models/`                           Typed domain models, including
+                                      agent and tool contracts
 
   `services/`                         Business logic and application
                                       services
+
+  `services/knowledge/`               Source-specific knowledge retrieval
+                                      abstractions
+
+  `services/tools/`                   Registered tool execution adapters
 
   `db/`                               Persistent Chroma vector databases
                                       (one per collection)
@@ -316,8 +354,6 @@ intelligent-agentic-research-assistant/
   `tests/`                            Deterministic unit tests and opt-in
                                       external integration tests
   -----------------------------------------------------------------------
-
-------------------------------------------------------------------------
 
 # ⚙️ Technology Stack
 
@@ -543,6 +579,8 @@ config/settings.py
 
 -   Tavily search depth
 -   Maximum search results
+-   Generic execution of planner-generated search queries
+-   Current-information query construction in the agent planner
 
 ### Conversation Memory
 
@@ -562,8 +600,8 @@ without requiring changes throughout the codebase.
 
 # 🧠 How It Works
 
-The assistant combines a conversational resolution layer with the
-adaptive hybrid retrieval workflow introduced in v2.5.0.
+The assistant combines a conversational resolution layer with a
+registry-driven agentic retrieval workflow.
 
 ## Step 1 --- User Question
 
@@ -572,9 +610,9 @@ The CLI accepts a natural-language question and passes it to
 
 ## Step 2 --- Conversation Context Resolution
 
-Recent bounded conversation history is supplied to the question
-rewriter. The rewriter determines whether the current question has
-enough context to be understood.
+Recent bounded conversation history is supplied to the question rewriter.
+The rewriter determines whether the current question has enough context
+to be understood.
 
 If a required conversational reference cannot be resolved, retrieval is
 skipped and the assistant asks the user to clarify.
@@ -583,79 +621,94 @@ skipped and the assistant asks the user to clarify.
 
 Resolved follow-up questions are rewritten into standalone retrieval
 queries while preserving the user's intent. Standalone questions remain
-standalone.
+standalone and avoid an unnecessary rewrite call.
 
-## Step 4 --- PDF Semantic Retrieval
+## Step 4 --- Agent Planning
 
-The resolved question is embedded and compared against the persistent
-Chroma vector database to retrieve relevant PDF chunks.
+The resolved question is passed to the agent planner.
 
-## Step 5 --- PDF Retrieval Evaluation
+The planner builds a tool catalog dynamically from the registered tools and
+asks the LLM to select the minimum set of tools required to retrieve
+evidence. Tool names and capabilities are therefore not hardcoded into the
+agent's routing logic.
 
-PDF results are evaluated using the configured distance threshold and
-mapped to a confidence level.
+For current-information questions, the planner can construct a more
+explicit time-aware Web query. This behavior is based on tool metadata and
+question intent rather than a hardcoded domain such as BERT or PDFs.
 
-## Step 6 --- Adaptive Retrieval Strategy
+## Step 5 --- Tool Validation and Execution
 
-The evaluation selects one of three strategies:
+Planner output is parsed and validated against the tool registry.
 
-``` text
-Strong PDF evidence            → PDF_ONLY
-Usable but uncertain evidence  → HYBRID (PDF + Web)
-Unusable PDF evidence          → WEB_ONLY
-```
+Unknown tools, malformed arguments, missing required arguments, duplicate
+calls, and calls that exceed the configured execution budget are rejected
+before execution.
 
-This avoids unnecessary web requests when local evidence is already
-strong.
+The tool executor resolves the validated call to its registered
+implementation and returns a structured observation.
 
-## Step 7 --- Web Retrieval and Evaluation
+## Step 6 --- Agent Observation Loop
 
-Hybrid and Web-only strategies use Tavily. Web results are independently
-evaluated using web relevance-score semantics. PDF distance scores and
-Tavily relevance scores are **not directly compared**.
+The agent records tool observations and asks the planner whether another
+retrieval step is justified.
 
-## Step 8 --- Candidate Normalization
+Follow-up planning is bounded by the configured maximum agent iterations
+and per-tool execution limits. Additional retrieval is requested only when
+previous evidence is insufficient and another registered tool can
+materially improve it.
+
+## Step 7 --- Retrieval Candidate Normalization
 
 Source-specific results become a common application representation:
 
 ``` text
 PDF Document + Distance ──┐
-                          ├──► RetrievalCandidate
+                           ├──► RetrievalCandidate
 Tavily WebResult ─────────┘
 ```
 
 Each candidate preserves content, source, its original retrieval score,
 and citation metadata.
 
-## Step 9 --- Cross-Source Reranking
+## Step 8 --- Cross-Source Reranking
 
 All candidates are embedded using the same Hugging Face embedding model
 and compared with the standalone question using cosine similarity.
 
-## Step 10 --- Top-K Evidence Selection
+PDF distance scores and Tavily relevance scores remain source-specific;
+the common reranker provides a separate semantic relevance signal.
 
-Only the strongest reranked candidates are retained according to
-`HYBRID_TOP_K`. The reranker score orders evidence; it is not used as
-the final confidence score.
+## Step 9 --- Top-K Evidence Selection
 
-## Step 11 --- Context Fusion
+The strongest reranked candidates are retained according to
+`HYBRID_TOP_K`.
 
-Ranked PDF and web evidence is fused into structured context while
+When multiple sources contribute evidence, the selection logic ensures
+that each contributing source can retain representation before remaining
+slots are filled by global semantic relevance.
+
+## Step 10 --- Context Fusion
+
+Ranked PDF and Web evidence is fused into structured context while
 preserving source boundaries and citation metadata.
 
-## Step 12 --- Grounded Response Generation
+## Step 11 --- Grounded Response Generation
 
-The Groq LLM generates an answer using the fused retrieval context. If
-neither PDF nor web retrieval provides acceptable evidence, the
-assistant returns the Null Object response instead of guessing.
+The Groq LLM generates an answer using only the fused retrieval context.
 
-## Step 13 --- Memory Update
+The generator is instructed not to invent facts or substitute unrelated
+evidence. When an important part of the question cannot be established
+from the retrieved evidence, the assistant explicitly reports that
+limitation instead of guessing.
+
+## Step 12 --- Memory Update
 
 After a resolved interaction completes, the original user question and
 generated assistant answer are stored in bounded in-session memory.
+
 Internal rewritten questions are not stored as user messages.
 
-## Step 14 --- Structured Response
+## Step 13 --- Structured Response
 
 Every retrieval response contains:
 
@@ -663,8 +716,6 @@ Every retrieval response contains:
 -   Source (`PDF`, `Web`, `Hybrid`, or `None`)
 -   Confidence
 -   Citations when available
-
-------------------------------------------------------------------------
 
 # 🧪 Testing
 
@@ -696,6 +747,18 @@ follow-ups, and Tavily result structure/relevance.
   ---------------------------------------------------------------------
   Version                       Description
   ----------------------------- ---------------------------------------
+  **v2.9.0**                    Intelligent agent planning, dynamic tool
+                                registry, validated tool calls, bounded
+                                multi-step execution, observation-driven
+                                follow-up planning, improved current Web
+                                queries, generic Web search execution, and
+                                grounded answer generation
+
+  **v2.8.0**                    Modular agent architecture, agent state,
+                                tool registry, tool runtime, tool execution
+                                adapters, PDF and Web knowledge tools, and
+                                foundation for agentic retrieval
+
   **v2.6.0**                    Bounded in-session conversation memory,
                                 context-aware question rewriting,
                                 follow-up reference resolution,
@@ -779,7 +842,7 @@ autonomous research assistant.
 
 ------------------------------------------------------------------------
 
-## ✅ v2.8.0
+## 🚀 v2.8.0
 
 ### Agent Architecture & Tool Calling
 
@@ -797,18 +860,22 @@ autonomous research assistant.
 
 ------------------------------------------------------------------------
 
-## 🚀 v2.9.0
+## ✅ v2.9.0
 
-### Intelligent Agents
+### Intelligent Agentic Retrieval
 
 -   LLM-powered tool selection
--   Function calling
--   ReAct reasoning
--   Dynamic tool execution
--   Observation handling
--   Multi-step planning
-
-------------------------------------------------------------------------
+-   Dynamic tool registry and capability catalog
+-   Validated, registry-driven tool calls
+-   Generic tool execution adapters
+-   Observation-driven follow-up planning
+-   Bounded multi-step agent execution
+-   Duplicate-call prevention
+-   Per-tool execution limits
+-   Improved current-information Web query construction
+-   Advanced Tavily search configuration
+-   Grounded answer generation with insufficient-evidence handling
+-   Extensible architecture for future tools
 
 ## 🎯 v3.0.0
 
@@ -847,7 +914,8 @@ Topics covered throughout the project include:
 -   Software Architecture
 -   Design Patterns
 -   AI Agents
--   LangGraph
+-   Tool Registries and Tool Execution
+-   Agent Planning and Observation Loops
 -   Model Context Protocol (MCP)
 
 Each release introduces meaningful capabilities while preserving a
@@ -931,19 +999,21 @@ accessible.
 
 # 🚀 What's Next?
 
-v2.8.0 introduces a modular AI Agent architecture with tool calling, an agent planner, tool runtime, tool execution pipeline, and dedicated PDF and Web tools. The next release focuses on intelligent planning through LLM-powered tool selection, ReAct reasoning, and function calling.
+v2.9.0 establishes the registry-driven agentic retrieval foundation:
+dynamic tool selection, bounded planning loops, generic tool execution,
+cross-source evidence ranking, and grounded response generation.
 
 Upcoming work includes:
 
--   Multi-document Knowledge Bases
--   Dynamic document indexing
+-   More retrieval and research tools
 -   Metadata filtering
--   LangGraph Workflows
--   Autonomous AI Agents
+-   Richer document and knowledge-source support
+-   LangGraph workflows where they provide clear architectural value
+-   Autonomous research workflows
 -   Model Context Protocol (MCP)
--   Production Deployment
--   Continuous Evaluation
--   Longer-term and persistent memory in a future release
+-   Continuous evaluation
+-   Production deployment
+-   Longer-term and persistent memory
 
 The goal is to evolve this repository into a complete
 **production-quality Agentic AI Research Assistant** while documenting

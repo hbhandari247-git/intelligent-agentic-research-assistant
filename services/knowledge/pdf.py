@@ -32,7 +32,9 @@ def search_pdf_knowledge(
             User question.
 
     Returns:
-        Retrieved PDF candidates.
+        Retrieved PDF knowledge containing
+        source documents and retrieval
+        candidates.
     """
 
     retrieved_documents = retrieve_documents(

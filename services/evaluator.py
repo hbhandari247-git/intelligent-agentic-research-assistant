@@ -10,9 +10,7 @@ from config.settings import (
     WEB_RETRIEVAL_THRESHOLD,
 )
 from models.confidence import Confidence
-from models.retrieval_evaluation import (
-    RetrievalEvaluation,
-)
+from models.retrieval_evaluation import RetrievalEvaluation
 from models.web_result import WebResult
 
 
@@ -42,7 +40,22 @@ def evaluate_pdf_retrieval(
             score=float("inf"),
         )
 
-    best_distance = min(distance for _, distance in retrieved_documents)
+    valid_distances = [
+        distance
+        for _, distance in retrieved_documents
+        if isinstance(distance, (int, float))
+    ]
+
+    if not valid_distances:
+        return RetrievalEvaluation(
+            passed=False,
+            confidence=Confidence.NONE,
+            score=float("inf"),
+        )
+
+    best_distance = min(
+        valid_distances,
+    )
 
     if best_distance <= 0.60:
         confidence = Confidence.VERY_HIGH
@@ -89,7 +102,25 @@ def evaluate_web_retrieval(
             score=0.0,
         )
 
-    best_score = max(result.score for result in results)
+    valid_scores = [
+        result.score
+        for result in results
+        if isinstance(
+            result.score,
+            (int, float),
+        )
+    ]
+
+    if not valid_scores:
+        return RetrievalEvaluation(
+            passed=False,
+            confidence=Confidence.NONE,
+            score=0.0,
+        )
+
+    best_score = max(
+        valid_scores,
+    )
 
     if best_score >= 0.90:
         confidence = Confidence.VERY_HIGH
@@ -118,8 +149,12 @@ def combine_confidence(
     Combine PDF and web retrieval confidence
     into a final hybrid confidence level.
 
-    The stronger available retrieval confidence
-    is used for the combined result.
+    Hybrid confidence is intentionally conservative.
+
+    The final confidence cannot be higher than
+    the weaker retrieval source because a hybrid
+    answer should not claim strong confidence when
+    one required source is weak.
 
     Args:
         pdf_confidence:
@@ -140,7 +175,7 @@ def combine_confidence(
         Confidence.VERY_HIGH: 4,
     }
 
-    return max(
+    return min(
         (
             pdf_confidence,
             web_confidence,

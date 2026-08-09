@@ -8,9 +8,7 @@ the AI agent.
 from models.tool_call import ToolCall
 from models.tool_result import ToolResult
 from models.tool_runtime import ToolRuntime
-from services.knowledge.web import (
-    search_web_knowledge,
-)
+from services.knowledge.web import search_web_knowledge
 
 
 def execute_web_tool(
@@ -19,18 +17,6 @@ def execute_web_tool(
 ) -> ToolResult:
     """
     Execute a web search.
-
-    Args:
-        tool_call:
-            Tool invocation requested
-            by the AI agent.
-
-        runtime:
-            Runtime resources available
-            to tool execution.
-
-    Returns:
-        Tool execution result.
     """
 
     _ = runtime
@@ -41,5 +27,6 @@ def execute_web_tool(
 
     return ToolResult(
         tool=tool_call.tool,
+        arguments=tool_call.arguments,
         knowledge=knowledge,
     )

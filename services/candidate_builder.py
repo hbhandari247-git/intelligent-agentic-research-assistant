@@ -17,28 +17,35 @@ def build_pdf_candidates(
     retrieved_documents: list[tuple[Document, float]],
 ) -> list[RetrievalCandidate]:
     """
-    Convert retrieved documents into
+    Convert retrieved PDF documents into
     normalized retrieval candidates.
     """
 
     candidates: list[RetrievalCandidate] = []
 
     for document, score in retrieved_documents:
-
         metadata = document.metadata
 
         source_file = metadata.get(
             "source_file",
-            metadata.get("source", "Document"),
+            metadata.get(
+                "source",
+                "Document",
+            ),
         )
 
         page = metadata.get("page")
 
         location = f"Page {page + 1}" if isinstance(page, int) else "Document"
 
+        content = document.page_content.strip()
+
+        if not content:
+            continue
+
         candidates.append(
             RetrievalCandidate(
-                content=document.page_content,
+                content=content,
                 source=Source.PDF,
                 score=score,
                 citation=Citation(
@@ -59,16 +66,25 @@ def build_web_candidates(
     normalized retrieval candidates.
     """
 
-    return [
-        RetrievalCandidate(
-            content=result.content,
-            source=Source.WEB,
-            score=result.score,
-            citation=Citation(
-                title=result.title,
-                location="Web",
-                url=result.url,
-            ),
+    candidates: list[RetrievalCandidate] = []
+
+    for result in results:
+        content = result.content.strip()
+
+        if not content:
+            continue
+
+        candidates.append(
+            RetrievalCandidate(
+                content=content,
+                source=Source.WEB,
+                score=result.score,
+                citation=Citation(
+                    title=result.title,
+                    location="Web",
+                    url=result.url,
+                ),
+            )
         )
-        for result in results
-    ]
+
+    return candidates

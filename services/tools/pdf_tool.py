@@ -40,5 +40,6 @@ def execute_pdf_tool(
 
     return ToolResult(
         tool=tool_call.tool,
+        arguments=tool_call.arguments,
         knowledge=knowledge,
     )

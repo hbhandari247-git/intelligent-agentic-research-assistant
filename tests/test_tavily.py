@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from services.web_search import retrieve_from_web
+from services.web_search import search_web
 
 RUN_TAVILY_TESTS = (
     os.getenv(
@@ -34,7 +34,7 @@ def test_tavily_returns_results() -> None:
     for a valid search query.
     """
 
-    results = retrieve_from_web(
+    results = search_web(
         "Who is the CEO of OpenAI?",
     )
 
@@ -48,7 +48,7 @@ def test_tavily_result_structure() -> None:
     the expected structured fields.
     """
 
-    results = retrieve_from_web(
+    results = search_web(
         "Who is the CEO of OpenAI?",
     )
 
@@ -71,7 +71,7 @@ def test_tavily_returns_relevant_results() -> None:
     for a known search query.
     """
 
-    results = retrieve_from_web(
+    results = search_web(
         "Who is the CEO of OpenAI?",
     )
 

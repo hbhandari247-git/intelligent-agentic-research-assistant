@@ -1,8 +1,8 @@
 """
 Document retrieval service.
 
-This module retrieves the most relevant
-document chunks from the vector database.
+This module retrieves relevant document
+chunks from the vector database.
 """
 
 from langchain_chroma import Chroma
@@ -16,24 +16,8 @@ def retrieve_documents(
     question: str,
 ) -> list[tuple[Document, float]]:
     """
-    Retrieve the most relevant document chunks
-    together with their retrieval distances.
-
-    Args:
-        vector_store:
-            The initialized Chroma vector store.
-
-        question:
-            The user's question.
-
-    Returns:
-        A list of tuples containing:
-
-        - Retrieved document
-        - Retrieval distance
-
-        Lower distances indicate
-        better semantic matches.
+    Retrieve the most relevant document
+    chunks together with their distances.
     """
 
     return vector_store.similarity_search_with_score(

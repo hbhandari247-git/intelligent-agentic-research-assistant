@@ -63,6 +63,15 @@ class ConversationService:
             context is required.
         """
 
+        question = question.strip()
+
+        if not question:
+            return None
+
+        # --------------------------------------------------
+        # Resolve conversational references BEFORE retrieval.
+        # --------------------------------------------------
+
         rewrite_result = rewrite_question(
             question,
             self._memory.messages,
@@ -71,10 +80,40 @@ class ConversationService:
         if not rewrite_result.resolved:
             return None
 
+        standalone_question = rewrite_result.question.strip()
+
+        if not standalone_question:
+            return None
+
+        # --------------------------------------------------
+        # Show rewrite when the user's question
+        # depended on conversation context.
+        # --------------------------------------------------
+
+        if standalone_question != question:
+            print(
+                "[Conversation] Rewritten question:",
+                standalone_question,
+            )
+
+        # --------------------------------------------------
+        # Send ONLY the standalone question to the agent.
+        #
+        # The agent should not perform another rewrite.
+        # --------------------------------------------------
+
         response = answer_question(
             self._vector_store,
-            rewrite_result.question,
+            standalone_question,
         )
+
+        # --------------------------------------------------
+        # Update conversation memory only after
+        # successful answer generation.
+        # --------------------------------------------------
+
+        if response is None:
+            return None
 
         self._memory.add_user_message(
             question,

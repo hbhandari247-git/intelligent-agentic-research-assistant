@@ -1,8 +1,11 @@
 """
 Tool executor service.
 
-This module executes tool calls
-created by the AI agent.
+This module executes tool calls created
+by the AI agent.
+
+The agent itself does not know how a tool
+is implemented. Execution is resolved here.
 """
 
 from collections.abc import Callable
@@ -28,42 +31,9 @@ ToolExecutor = Callable[
 ]
 
 
-def execute_tool(
-    tool_call: ToolCall,
-    runtime: ToolRuntime,
-) -> ToolResult:
-    """
-    Execute a tool call.
-
-    Args:
-        tool_call:
-            Tool invocation requested
-            by the AI agent.
-
-        runtime:
-            Runtime resources available
-            to tool execution.
-
-    Returns:
-        Tool execution result.
-
-    Raises:
-        ValueError:
-            If the requested tool
-            is unknown.
-    """
-
-    executor = TOOL_EXECUTORS.get(
-        tool_call.tool,
-    )
-
-    if executor is None:
-        raise ValueError(f"Unknown tool: " f"'{tool_call.tool.name}'.")
-
-    return executor(
-        tool_call,
-        runtime,
-    )
+# --------------------------------------------------
+# Executor registry
+# --------------------------------------------------
 
 
 TOOL_EXECUTORS: dict[
@@ -73,3 +43,85 @@ TOOL_EXECUTORS: dict[
     SEARCH_PDF_TOOL: execute_pdf_tool,
     SEARCH_WEB_TOOL: execute_web_tool,
 }
+
+
+def register_tool_executor(
+    tool: Tool,
+    executor: ToolExecutor,
+) -> None:
+    """
+    Register an executor for a tool.
+
+    This function allows future tools to be
+    registered without changing agent logic.
+    """
+
+    TOOL_EXECUTORS[tool] = executor
+
+
+def get_tool_executor(
+    tool: Tool,
+) -> ToolExecutor | None:
+    """
+    Return the executor registered for a tool.
+    """
+
+    return TOOL_EXECUTORS.get(
+        tool,
+    )
+
+
+def execute_tool(
+    tool_call: ToolCall,
+    runtime: ToolRuntime,
+) -> ToolResult:
+    """
+    Execute a tool call.
+
+    Tool failures are converted into
+    ToolResult objects so the agent can
+    observe the failure.
+
+    Args:
+        tool_call:
+            Requested tool invocation.
+
+        runtime:
+            Runtime resources available
+            to the tool.
+
+    Returns:
+        Tool execution result.
+
+    Raises:
+        ValueError:
+            If no executor is registered
+            for the requested tool.
+    """
+
+    executor = get_tool_executor(
+        tool_call.tool,
+    )
+
+    if executor is None:
+        raise ValueError(
+            f"Unknown tool: '{tool_call.tool.name}'.",
+        )
+
+    try:
+        return executor(
+            tool_call,
+            runtime,
+        )
+
+    except (
+        RuntimeError,
+        ValueError,
+        OSError,
+    ) as error:
+        return ToolResult(
+            tool=tool_call.tool,
+            arguments=tool_call.arguments,
+            success=False,
+            error=str(error),
+        )

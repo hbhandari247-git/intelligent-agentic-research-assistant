@@ -3,7 +3,7 @@ Context fusion service.
 
 This module combines ranked retrieval
 candidates into structured LLM context
-and preserves their citations.
+while preserving citation information.
 """
 
 from models.citation import Citation
@@ -14,18 +14,13 @@ def fuse_context(
     ranked_candidates: list[RankedCandidate],
 ) -> str:
     """
-    Combine ranked retrieval candidates
-    into structured context.
-
-    Source information is preserved so
-    evidence from different retrieval
-    systems remains distinguishable.
+    Combine ranked candidates into a
+    structured context string.
     """
 
     context_blocks: list[str] = []
 
     for ranked_candidate in ranked_candidates:
-
         candidate = ranked_candidate.candidate
         citation = candidate.citation
 
@@ -39,7 +34,7 @@ def fuse_context(
             if part
         )
 
-        context_blocks.append(f"[{header}]\n{candidate.content}")
+        context_blocks.append(f"[{header}]\n" f"{candidate.content}")
 
     return "\n\n".join(context_blocks)
 
@@ -48,25 +43,14 @@ def build_citations(
     ranked_candidates: list[RankedCandidate],
 ) -> list[Citation]:
     """
-    Build unique citations from ranked
-    retrieval candidates.
-
-    Citation order follows candidate
-    relevance order.
+    Build unique citations in relevance order.
     """
 
     citations: list[Citation] = []
 
-    seen: set[
-        tuple[
-            str,
-            str,
-            str | None,
-        ]
-    ] = set()
+    seen: set[tuple[str, str, str | None]] = set()
 
     for ranked_candidate in ranked_candidates:
-
         citation = ranked_candidate.candidate.citation
 
         key = (
@@ -79,7 +63,6 @@ def build_citations(
             continue
 
         seen.add(key)
-
         citations.append(citation)
 
     return citations

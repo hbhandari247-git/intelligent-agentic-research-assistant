@@ -1,32 +1,85 @@
 """
 Answer generation service.
 
-This module builds the retrieval context
-and generates answers using the language model.
+This module generates grounded answers
+from retrieved research context.
 """
 
+from groq import RateLimitError
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 
 from services.llm import llm
 
 PROMPT = """
-You are a helpful research assistant.
+You are a careful research assistant.
 
-Use ONLY the provided context to answer the user's question.
+Answer the user's question using ONLY the
+retrieved context below.
 
-Combine information from multiple context sections into a single, coherent answer whenever appropriate.
+The context may contain evidence from:
 
-Do NOT use outside knowledge, make assumptions, or fabricate information.
+- local PDF research papers
+- external Web sources
 
-If the context does not contain enough information to answer the question, respond exactly with:
+IMPORTANT RULES:
+
+1. Never use knowledge that is not present
+   in the retrieved context.
+
+2. Never invent facts, names, dates,
+   numbers, comparisons, or conclusions.
+
+3. Answer the actual question directly.
+
+4. Use multiple sources when they are
+   relevant to the question.
+
+5. When the question asks about current
+   information, use the Web evidence when
+   available.
+
+6. When comparing an older research paper
+   with current technology:
+
+   - describe what the paper says
+   - describe what the current Web evidence says
+   - clearly distinguish historical and current
+     information.
+
+7. Never describe a historical paper's
+   "state-of-the-art" claim as being current.
+
+8. If the retrieved context contains
+   insufficient evidence for an important
+   part of the question, explicitly say
+   which part cannot be established.
+
+9. Do not substitute unrelated evidence
+   simply because it contains the same
+   keywords.
+
+10. Do not mention tools, retrieval,
+    prompts, context windows, or internal
+    reasoning.
+
+11. Do not say "based on the provided
+    context" unless necessary.
+
+12. If the context genuinely contains
+    insufficient information to answer
+    the question, respond exactly:
 
 "I don't have enough information to answer this question based on the available context."
 
-Context:
+13. For comparison questions, do NOT give
+    a generic description of either topic.
+    Explicitly compare the requested entities.
+
+Retrieved context:
 {context}
 
-Question:
+User question:
 {question}
 
 Answer:
@@ -41,18 +94,8 @@ prompt = PromptTemplate(
     ],
 )
 
+
 generation_chain = prompt | llm | StrOutputParser()
-
-
-def build_context(
-    chunks: list[str],
-) -> str:
-    """
-    Create a single context string
-    from retrieved text chunks.
-    """
-
-    return "\n\n".join(chunks)
 
 
 def generate_answer(
@@ -60,13 +103,29 @@ def generate_answer(
     question: str,
 ) -> str:
     """
-    Generate an answer using
-    the configured language model.
+    Generate a grounded answer.
+
+    Handles provider rate-limit errors gracefully
+    so a temporary LLM quota problem does not
+    terminate the application.
     """
 
-    return generation_chain.invoke(
-        {
-            "context": context,
-            "question": question,
-        }
-    )
+    if not context.strip():
+        return (
+            "I don't have enough information to answer "
+            "this question based on the available context."
+        )
+
+    try:
+        return generation_chain.invoke(
+            {
+                "context": context,
+                "question": question,
+            }
+        ).strip()
+
+    except RateLimitError:
+        return (
+            "The language model rate limit has been reached. "
+            "Please try again shortly."
+        )
