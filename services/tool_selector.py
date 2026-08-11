@@ -7,13 +7,17 @@ tools are required to answer a question.
 The planner is intentionally decoupled from
 specific tools. Tool capabilities are supplied
 dynamically from the tool registry.
+
+The follow-up planner is evidence-aware:
+retrieval relevance alone does not imply that
+the user's question has been sufficiently answered.
 """
 
 import json
 from datetime import datetime, timezone
 from typing import Any
 
-from groq import BadRequestError
+from groq import BadRequestError, RateLimitError
 from langchain_core.messages import HumanMessage
 
 from models.tool_call import ToolCall
@@ -130,8 +134,8 @@ def _is_comparison_with_current_state(
         "state-of-the-art",
         "current technology",
         "modern technology",
-        "modern approaches",
         "current approaches",
+        "modern approaches",
         "current models",
         "modern models",
         "current methods",
@@ -446,15 +450,6 @@ def _normalize_current_tool_queries(
             )
             continue
 
-        # The planner may generate a very short
-        # current query such as:
-        #
-        #     "current state of language models"
-        #
-        # Replace it with a query grounded in the
-        # complete user question and add retrieval
-        # guidance appropriate for current-state
-        # comparisons.
         if _is_comparison_with_current_state(
             question,
         ):
@@ -652,7 +647,7 @@ ROUTING PRINCIPLES
 
 11. For comparisons with current technology,
     include both the comparison subject and
-    the current-state comparison context.
+    current-state comparison context.
 
 12. Do not return duplicate calls for the same
     tool and arguments.
@@ -696,7 +691,7 @@ USER QUESTION
             ],
         )
 
-    except BadRequestError:
+    except (BadRequestError, RateLimitError):
         return _default_tool_call(
             question,
         )
@@ -755,10 +750,14 @@ def _format_observations(
 
     blocks: list[str] = []
 
-    for result in tool_results:
+    for index, result in enumerate(
+        tool_results,
+        start=1,
+    ):
         blocks.append(
             "\n".join(
                 (
+                    f"Result {index}",
                     f"Tool: {result.tool.name}",
                     f"Arguments: {result.arguments}",
                     ("Relevant content: " f"{result.has_relevant_content}"),
@@ -772,23 +771,30 @@ def _format_observations(
     )
 
 
+# --------------------------------------------------
+# Follow-up planning
+# --------------------------------------------------
+
+
 def select_follow_up_tool_calls(
     question: str,
     tool_results: tuple[ToolResult, ...],
 ) -> tuple[ToolCall, ...]:
     """
-    Select at most one additional retrieval
-    step when previous retrieval failed to
-    produce usable evidence.
+    Decide whether additional retrieval is needed.
+
+    Retrieval relevance is NOT treated as evidence
+    sufficiency.
+
+    The planner evaluates whether the available
+    observations actually contain enough information
+    to answer the user's question.
+
+    At most one additional retrieval call is
+    requested from this function.
     """
 
     if not tool_results:
-        return ()
-
-    # If any registered tool produced useful
-    # evidence, do not introduce another source
-    # merely for confirmation.
-    if any(result.has_relevant_content for result in tool_results):
         return ()
 
     catalog = _build_tool_catalog()
@@ -798,56 +804,119 @@ def select_follow_up_tool_calls(
     )
 
     prompt = f"""
-You are the follow-up planning component of
+You are the evidence-sufficiency component of
 an agentic research assistant.
 
-Previous retrieval attempts did not produce
-usable relevant evidence.
+The user asked a question.
 
-Your job is to determine whether ONE additional
-retrieval call could materially improve the
-evidence.
+One or more retrieval tools have already been
+executed.
+
+Your job is NOT to answer the question.
+
+Your job is to decide whether the retrieved
+evidence is sufficient to answer the user's
+question accurately and directly.
+
+IMPORTANT DISTINCTION
+=====================
+
+"Relevant content" does NOT automatically mean
+"sufficient evidence".
+
+A result may be relevant but incomplete.
+
+For example, retrieved evidence may:
+
+- mention a concept without defining it;
+- state that several items exist without
+  identifying all of them;
+- contain one part of a multi-part question;
+- contain a related fact but not the requested
+  fact;
+- support a comparison subject but not the
+  comparison itself;
+- contain an ambiguous or indirect reference;
+- contain evidence that requires a more precise
+  retrieval query.
+
+Evaluate the actual observation rather than
+assuming that a successful retrieval answered
+the question.
 
 TOOL CATALOG
 ============
 
 {catalog}
 
-RULES
-=====
+DECISION RULES
+==============
 
-1. Use only registered tools.
+1. If the available evidence directly and
+   sufficiently supports the requested answer,
+   return an empty tool_calls list.
 
-2. Make at most ONE tool call.
+2. If the evidence is relevant but incomplete,
+   request one additional retrieval.
 
-3. Do not repeat an identical tool call.
+3. If the evidence answers only part of a
+   multi-part question, request retrieval for
+   the missing part.
 
-4. Refine the query using the failure or
-   missing-evidence information.
+4. If the evidence contains a broad statement
+   but not the specific supporting details
+   needed by the question, refine the query.
 
-5. Do not search merely for confirmation.
+5. If another retrieval is unlikely to produce
+   meaningful improvement, return an empty list.
 
-6. Use current-only tools only when the question
-   actually requires current information.
+6. Prefer the tool that already demonstrated
+   useful evidence unless another registered
+   tool is clearly required.
 
-7. For current-state questions, make the
-   current-state evidence requested by the user
-   explicit in the query.
+7. Use only registered tools.
 
-8. If no useful additional retrieval is
-   justified, return an empty tool_calls list.
+8. Make at most ONE tool call.
+
+9. Never repeat an identical tool call.
+
+10. The follow-up query must be more specific
+    than the previous query when the previous
+    evidence was incomplete.
+
+11. The follow-up query should target the
+    missing information, not merely repeat the
+    original question.
+
+12. Do not use current-only tools unless the
+    question actually requires current
+    information.
+
+13. Do not search merely to increase the number
+    of citations.
+
+14. Do not treat the existence of a relevant
+    source as proof that the answer is supported.
 
 OUTPUT FORMAT
 =============
 
-Return ONLY valid JSON:
+Return ONLY valid JSON.
+
+If the evidence is sufficient:
+
+{{
+  "tool_calls": []
+}}
+
+If another retrieval is justified:
 
 {{
   "tool_calls": [
     {{
       "tool": "registered_tool_name",
       "arguments": {{
-        "argument_name": "argument_value"
+        "argument_name": "more_specific_query"
       }}
     }}
   ]
@@ -858,8 +927,8 @@ USER QUESTION
 
 {question}
 
-PREVIOUS OBSERVATIONS
-=====================
+RETRIEVED EVIDENCE
+==================
 
 {observations}
 """
@@ -873,7 +942,7 @@ PREVIOUS OBSERVATIONS
             ],
         )
 
-    except BadRequestError:
+    except (BadRequestError, RateLimitError):
         return ()
 
     parsed = _extract_json(

@@ -3,9 +3,26 @@ Response builder service.
 
 This module builds structured responses
 from agent tool results.
+
+The response builder is responsible for:
+
+- extracting normalized retrieval candidates
+- improving cross-source evidence ranking
+- preserving source diversity
+- estimating confidence from final evidence
+- building grounded generation context
+- producing citations
+
+Important:
+The response builder does not treat retrieval existence
+as proof that the question has been answered. It focuses
+on selecting the strongest evidence available to the
+generator.
 """
 
+import re
 from collections import defaultdict
+from itertools import pairwise
 
 from config.settings import HYBRID_TOP_K
 from models.confidence import Confidence
@@ -19,12 +36,210 @@ from services.context_fusion import (
     fuse_context,
 )
 from services.evaluator import (
-    combine_confidence,
     evaluate_pdf_retrieval,
     evaluate_web_retrieval,
 )
 from services.generator import generate_answer
 from services.reranker import rerank_candidates
+
+# ---------------------------------------------------------------------------
+# Lexical relevance
+# ---------------------------------------------------------------------------
+
+_TOKEN_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:/+-]*")
+
+_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "be",
+    "by",
+    "can",
+    "compare",
+    "comparison",
+    "compared",
+    "does",
+    "for",
+    "from",
+    "how",
+    "in",
+    "is",
+    "it",
+    "of",
+    "on",
+    "or",
+    "the",
+    "this",
+    "to",
+    "use",
+    "used",
+    "using",
+    "was",
+    "what",
+    "when",
+    "which",
+    "who",
+    "why",
+    "with",
+}
+
+
+def _tokenize(
+    text: str,
+) -> list[str]:
+    """
+    Tokenize text into normalized lexical units.
+
+    Technical tokens such as:
+
+        BERTBASE
+        BERTLARGE
+        110M
+        self-attention
+        pre-training
+
+    are intentionally preserved as much as possible.
+    """
+
+    return [token.casefold() for token in _TOKEN_PATTERN.findall(text)]
+
+
+def _content_tokens(
+    text: str,
+) -> list[str]:
+    """
+    Return meaningful content tokens after removing
+    common question-language stopwords.
+    """
+
+    return [token for token in _tokenize(text) if token not in _STOPWORDS]
+
+
+def _lexical_relevance(
+    question: str,
+    content: str,
+) -> float:
+    """
+    Estimate lexical relevance between a question
+    and a retrieved candidate.
+
+    The score combines:
+
+    1. Individual content-token coverage.
+    2. Exact phrase overlap.
+    3. Repeated-token protection.
+
+    The result is normalized to [0, 1].
+
+    This is deliberately conservative. Lexical matching
+    supplements semantic similarity; it does not replace it.
+    """
+
+    question_tokens = _content_tokens(
+        question,
+    )
+
+    content_tokens = _content_tokens(
+        content,
+    )
+
+    if not question_tokens or not content_tokens:
+        return 0.0
+
+    content_token_set = set(
+        content_tokens,
+    )
+
+    matched_tokens = sum(
+        1 for token in set(question_tokens) if token in content_token_set
+    )
+
+    token_coverage = matched_tokens / len(set(question_tokens))
+
+    normalized_question = " ".join(
+        question_tokens,
+    )
+
+    normalized_content = " ".join(
+        content_tokens,
+    )
+
+    phrase_score = 0.0
+
+    # Exact full-question phrase match is a strong signal.
+    if normalized_question and normalized_question in normalized_content:
+        phrase_score = 1.0
+
+    # For multi-token technical queries, reward
+    # contiguous phrases.
+    elif len(question_tokens) >= 2:
+        bigrams = list(pairwise(question_tokens))
+
+        if bigrams:
+            content_bigrams = set(pairwise(content_tokens))
+
+            matched_bigrams = sum(1 for bigram in bigrams if bigram in content_bigrams)
+
+            phrase_score = matched_bigrams / len(bigrams)
+
+    return min(
+        1.0,
+        (0.75 * token_coverage) + (0.25 * phrase_score),
+    )
+
+
+def _combine_relevance_scores(
+    question: str,
+    ranked_candidates: list[RankedCandidate],
+) -> list[RankedCandidate]:
+    """
+    Combine semantic and lexical relevance.
+
+    The existing reranker provides semantic relevance.
+    This function adds a bounded lexical bonus for
+    exact technical terminology.
+
+    Semantic relevance remains dominant.
+
+    Final score:
+
+        0.80 * semantic relevance
+        0.20 * lexical relevance
+
+    This is intentionally simple and deterministic so
+    retrieval behavior can be evaluated and tuned later.
+    """
+
+    rescored: list[RankedCandidate] = []
+
+    for ranked_candidate in ranked_candidates:
+        lexical_score = _lexical_relevance(
+            question,
+            ranked_candidate.candidate.content,
+        )
+
+        semantic_score = ranked_candidate.relevance_score
+
+        combined_score = 0.80 * semantic_score + 0.20 * lexical_score
+
+        rescored.append(
+            RankedCandidate(
+                candidate=ranked_candidate.candidate,
+                relevance_score=combined_score,
+            )
+        )
+
+    return sorted(
+        rescored,
+        key=lambda candidate: candidate.relevance_score,
+        reverse=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Candidate selection
+# ---------------------------------------------------------------------------
 
 
 def _rank_candidates(
@@ -35,15 +250,17 @@ def _rank_candidates(
     Rerank retrieval candidates and retain
     the strongest evidence.
 
-    When multiple retrieval sources contribute
-    candidates, ensure that each contributing
-    source receives representation in the
-    final evidence set before filling the
-    remaining slots by semantic relevance.
+    Ranking consists of:
 
-    This prevents a highly relevant source from
-    completely crowding out another source that
-    was explicitly selected by the planner.
+    1. Common embedding-based semantic relevance.
+    2. Exact lexical/phrase relevance.
+    3. Source representation when multiple
+       retrieval sources contributed evidence.
+
+    When multiple retrieval sources contribute candidates,
+    ensure that each contributing source receives
+    representation in the final evidence set before filling
+    remaining slots by relevance.
 
     The reranker itself remains source-agnostic.
     """
@@ -56,17 +273,13 @@ def _rank_candidates(
     if not ranked_candidates:
         return []
 
+    ranked_candidates = _combine_relevance_scores(
+        question,
+        ranked_candidates,
+    )
+
     if HYBRID_TOP_K <= 0:
         return []
-
-    # --------------------------------------------------
-    # Group candidates by their source.
-    #
-    # This is intentionally dynamic. No specific
-    # source names are required here, so adding a new
-    # retrieval source does not require changing the
-    # selection logic.
-    # --------------------------------------------------
 
     candidates_by_source: dict[
         Source,
@@ -76,25 +289,8 @@ def _rank_candidates(
     for candidate in ranked_candidates:
         candidates_by_source[candidate.candidate.source].append(candidate)
 
-    # --------------------------------------------------
-    # If only one source contributed candidates,
-    # normal top-k relevance ranking is sufficient.
-    # --------------------------------------------------
-
     if len(candidates_by_source) <= 1:
         return ranked_candidates[:HYBRID_TOP_K]
-
-    # --------------------------------------------------
-    # Multiple sources contributed evidence.
-    #
-    # Reserve one slot for the strongest candidate
-    # from each source.
-    #
-    # This guarantees that a source explicitly selected
-    # by the planner cannot disappear merely because
-    # another source has slightly higher embedding
-    # similarity.
-    # --------------------------------------------------
 
     selected: list[RankedCandidate] = []
 
@@ -102,13 +298,6 @@ def _rank_candidates(
         selected.append(
             source_candidates[0],
         )
-
-    # --------------------------------------------------
-    # Fill remaining slots using global relevance.
-    #
-    # This preserves the normal semantic ranking
-    # behavior after source representation is ensured.
-    # --------------------------------------------------
 
     selected_ids = {id(candidate) for candidate in selected}
 
@@ -123,11 +312,6 @@ def _rank_candidates(
         selected_ids.add(
             id(candidate),
         )
-
-    # --------------------------------------------------
-    # Keep the final context ordered by semantic
-    # relevance rather than by source.
-    # --------------------------------------------------
 
     return sorted(
         selected,
@@ -168,9 +352,6 @@ def _determine_source(
     Determine the response source from
     candidates that actually survived
     cross-source reranking.
-
-    This prevents weak or rejected retrieval
-    results from affecting the reported source.
     """
 
     sources = {
@@ -215,12 +396,16 @@ def _confidence_from_ranked_candidates(
     Estimate confidence from the evidence
     that actually survived reranking.
 
-    Confidence is based on the semantic
-    relevance scores produced by the common
-    cross-source reranker.
+    Confidence is based on:
 
-    This avoids reporting high confidence
-    based only on raw retrieval scores.
+    - strongest final evidence
+    - average quality of the strongest evidence
+    - number of strong supporting candidates
+
+    This is deliberately conservative.
+
+    These thresholds are still heuristics and will be
+    calibrated later against a real evaluation dataset.
     """
 
     if not ranked_candidates:
@@ -230,13 +415,19 @@ def _confidence_from_ranked_candidates(
 
     best_score = max(scores)
 
-    if best_score >= 0.85:
+    strongest_scores = scores[: min(3, len(scores))]
+
+    average_top_score = sum(strongest_scores) / len(strongest_scores)
+
+    strong_candidate_count = sum(score >= 0.70 for score in scores)
+
+    if best_score >= 0.88 and average_top_score >= 0.78 and strong_candidate_count >= 2:
         return Confidence.VERY_HIGH
 
-    if best_score >= 0.75:
+    if best_score >= 0.80 and average_top_score >= 0.70:
         return Confidence.HIGH
 
-    if best_score >= 0.65:
+    if best_score >= 0.68 and average_top_score >= 0.58:
         return Confidence.MEDIUM
 
     return Confidence.LOW
@@ -247,14 +438,13 @@ def _evaluate_source_confidence(
     ranked_candidates: list[RankedCandidate],
 ) -> Confidence:
     """
-    Evaluate retrieval confidence using
-    only sources that contributed ranked
-    evidence.
+    Evaluate retrieval confidence using only
+    sources that contributed final ranked evidence.
 
-    Source-specific retrieval evaluation
-    is used as supporting evidence, while
-    the final result is constrained by the
-    semantic relevance of the ranked candidates.
+    Source-specific retrieval evaluation remains
+    supporting evidence, but final confidence is
+    constrained by the actual candidates that
+    survived cross-source reranking.
     """
 
     ranked_sources = {candidate.candidate.source for candidate in ranked_candidates}
@@ -317,9 +507,12 @@ def _evaluate_source_confidence(
     )
 
     if pdf_confidence is not None and web_confidence is not None:
-        source_confidence = combine_confidence(
-            pdf_confidence,
-            web_confidence,
+        source_confidence = min(
+            (
+                pdf_confidence,
+                web_confidence,
+            ),
+            key=_confidence_rank,
         )
 
     elif pdf_confidence is not None:
@@ -348,11 +541,11 @@ def _evaluate_confidence(
     Evaluate final confidence using:
 
     1. Source-specific retrieval quality.
-    2. Cross-source semantic relevance.
+    2. Final cross-source semantic + lexical relevance.
 
     The weaker signal determines the final
-    confidence so that weak evidence cannot
-    produce an artificially high-confidence answer.
+    confidence so weak evidence cannot produce
+    artificially high confidence.
     """
 
     return _evaluate_source_confidence(
@@ -420,11 +613,13 @@ def build_response(
         ranked_candidates,
     )
 
+    answer = generate_answer(
+        context,
+        question,
+    )
+
     return Response(
-        answer=generate_answer(
-            context,
-            question,
-        ),
+        answer=answer,
         source=source,
         confidence=confidence,
         citations=build_citations(

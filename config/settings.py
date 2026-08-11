@@ -27,12 +27,40 @@ CHROMA_DB_PATH: Path = Path("db")
 # Retrieval
 # -----------------------------
 
+# Number of candidates ultimately expected
+# to survive retrieval/reranking.
 TOP_K = 12
+
+# Retrieve a broader candidate pool before
+# downstream reranking.
+#
+# Example:
+#   TOP_K = 12
+#   multiplier = 3
+#   retrieval candidates = 36
+#
+# This is intentionally domain-agnostic.
+RETRIEVAL_CANDIDATE_MULTIPLIER = 3
 
 CHUNK_SIZE = 500
 
 CHUNK_OVERLAP = 100
 
+# Maximum number of retrieved candidates exposed
+# to the follow-up planner.
+FOLLOW_UP_OBSERVATION_TOP_K = 6
+
+# Maximum characters retained from each candidate
+# when building follow-up planner observations.
+FOLLOW_UP_OBSERVATION_MAX_CHARS = 1500
+
+# Maximum number of candidates exposed to the
+# final answer generator.
+GENERATION_CONTEXT_TOP_K = 8
+
+# Maximum characters retained from an individual
+# candidate in the final generation context.
+GENERATION_CONTEXT_MAX_CHARS = 4000
 
 # -----------------------------
 # Embeddings
@@ -45,7 +73,9 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 # LLM
 # -----------------------------
 
-MODEL_NAME = "llama-3.3-70b-versatile"
+# Fast, higher-quota model used during
+# v3 stabilization.
+MODEL_NAME = "llama-3.1-8b-instant"
 
 TEMPERATURE = 0
 
