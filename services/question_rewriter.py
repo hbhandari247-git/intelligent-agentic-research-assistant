@@ -491,6 +491,68 @@ def _parse_rewrite_result(
     )
 
 
+REFERENCE_PRONOUNS = {
+    "it",
+    "its",
+    "they",
+    "them",
+    "their",
+    "this",
+    "that",
+    "these",
+    "those",
+    "he",
+    "him",
+    "his",
+    "she",
+    "her",
+    "hers",
+    "one",
+    "ones",
+    "former",
+    "latter",
+}
+
+CONTEXTUAL_PHRASES = (
+    "what about",
+    "how about",
+    "what does it",
+    "what is its",
+    "what are its",
+    "how does it",
+    "how is it",
+    "why does it",
+    "why is it",
+    "how many does it",
+    "how much does it",
+    "what does this",
+    "what does that",
+    "how does this",
+    "how does that",
+    "why does this",
+    "why does that",
+    "the model",
+    "the paper",
+    "the architecture",
+    "the author",
+    "the method",
+    "the approach",
+    "the larger version",
+    "the smaller version",
+    "the previous version",
+    "the next version",
+    "the other version",
+    "the previous one",
+    "the next one",
+    "the other one",
+    "the same",
+    "another one",
+    "the above",
+    "the latter",
+    "the former",
+)
+
+
 def _contains_reference_pronoun(
     question: str,
 ) -> bool:
@@ -510,31 +572,9 @@ def _contains_reference_pronoun(
         for token in question.casefold().split()
     }
 
-    reference_pronouns = {
-        "it",
-        "its",
-        "they",
-        "them",
-        "their",
-        "this",
-        "that",
-        "these",
-        "those",
-        "he",
-        "him",
-        "his",
-        "she",
-        "her",
-        "hers",
-        "one",
-        "ones",
-        "former",
-        "latter",
-    }
-
     return bool(
         tokens.intersection(
-            reference_pronouns,
+            REFERENCE_PRONOUNS,
         )
     )
 
@@ -551,46 +591,7 @@ def _contains_contextual_phrase(
 
     normalized = question.casefold().strip()
 
-    contextual_phrases = (
-        "what about",
-        "how about",
-        "what does it",
-        "what is its",
-        "what are its",
-        "how does it",
-        "how is it",
-        "why does it",
-        "why is it",
-        "how many does it",
-        "how much does it",
-        "what does this",
-        "what does that",
-        "how does this",
-        "how does that",
-        "why does this",
-        "why does that",
-        "the model",
-        "the paper",
-        "the architecture",
-        "the author",
-        "the method",
-        "the approach",
-        "the larger version",
-        "the smaller version",
-        "the previous version",
-        "the next version",
-        "the other version",
-        "the previous one",
-        "the next one",
-        "the other one",
-        "the same",
-        "another one",
-        "the above",
-        "the latter",
-        "the former",
-    )
-
-    return any(phrase in normalized for phrase in contextual_phrases)
+    return any(phrase in normalized for phrase in CONTEXTUAL_PHRASES)
 
 
 def _is_obviously_standalone(
