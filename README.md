@@ -415,49 +415,33 @@ intelligent-agentic-research-assistant/
 
 ### Directory Overview
 
-  -----------------------------------------------------------------------
-  Directory                           Purpose
-  ----------------------------------- -----------------------------------
-  `config/`                           Centralized application
-                                      configuration
-
-  `models/`                           Typed domain models, including
-                                      agent and tool contracts
-
-  `services/`                         Business logic and application
-                                      services
-
-  `services/knowledge/`               Source-specific knowledge retrieval
-                                      abstractions
-
-  `services/tools/`                   Registered tool execution adapters
-
-  `db/`                               Persistent Chroma vector databases
-                                      (one per collection)
-
-  `data/`                             Collection-based local knowledge
-                                      base
-
-  `tests/`                            Deterministic unit tests and opt-in
-                                      external integration tests
-  -----------------------------------------------------------------------
+| Directory | Purpose |
+| :--- | :--- |
+| `config/` | Centralized application configuration |
+| `models/` | Typed domain models, including agent and tool contracts |
+| `services/` | Business logic and application services |
+| `services/knowledge/` | Source-specific knowledge retrieval abstractions |
+| `services/tools/` | Registered tool execution adapters |
+| `db/` | Persistent Chroma vector databases (one per collection) |
+| `data/` | Collection-based local knowledge base |
+| `tests/` | Deterministic unit tests and opt-in external integration tests |
 
 # ⚙️ Technology Stack
 
-  Technology               Purpose
-  ------------------------ ----------------------------------------
-  **Python 3.12**          Core programming language
-  **LangChain**            LLM application framework
-  **CrewAI**               Multi-Agent Orchestrator
-  **ChromaDB**             Persistent vector database
-  **Hugging Face**         Sentence Transformer embeddings
-  **Groq**                 Large Language Model inference
-  **Tavily**               AI-powered web search
-  **SQLite**               Long-Term Memory (LTM) database engine
-  **PyPDF**                PDF document processing
-  **python-dotenv**        Environment variable management
-  **langchain-openai**     OpenAI-compatible client integrations
-  **OmniRoute (Optional)** Self-hosted local AI proxy gateway
+| Technology | Purpose |
+| :--- | :--- |
+| **Python 3.12** | Core programming language |
+| **LangChain** | LLM application framework |
+| **CrewAI** | Multi-Agent Orchestrator |
+| **ChromaDB** | Persistent vector database |
+| **Hugging Face** | Sentence Transformer embeddings |
+| **Groq** | Large Language Model inference |
+| **Tavily** | AI-powered web search |
+| **SQLite** | Long-Term Memory (LTM) database engine |
+| **PyPDF** | PDF document processing |
+| **python-dotenv** | Environment variable management |
+| **langchain-openai** | OpenAI-compatible client integrations |
+| **OmniRoute (Optional)** | Self-hosted local AI proxy gateway |
 
 ------------------------------------------------------------------------
 
