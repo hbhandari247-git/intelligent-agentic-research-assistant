@@ -320,17 +320,21 @@ intelligent-agentic-research-assistant/
 │   └── settings.py
 ├── data/
 ├── db/
+├── scratch/
+│   └── test_omniroute.py
 ├── models/
-│   ├── __init__.py
 │   ├── agent_state.py
 │   ├── citation.py
+│   ├── collection.py
 │   ├── confidence.py
+│   ├── context.py
 │   ├── conversation_message.py
+│   ├── knowledge.py
 │   ├── ranked_candidate.py
 │   ├── response.py
-│   ├── rewrite_result.py
 │   ├── retrieval_candidate.py
 │   ├── retrieval_evaluation.py
+│   ├── rewrite_result.py
 │   ├── source.py
 │   ├── tool.py
 │   ├── tool_call.py
@@ -345,10 +349,12 @@ intelligent-agentic-research-assistant/
 │   ├── context_fusion.py
 │   ├── conversation.py
 │   ├── conversation_memory.py
+│   ├── document_discovery.py
 │   ├── document_loader.py
 │   ├── embeddings.py
 │   ├── evaluator.py
 │   ├── generator.py
+│   ├── index_manager.py
 │   ├── knowledge/
 │   │   ├── pdf.py
 │   │   └── web.py
@@ -405,17 +411,19 @@ intelligent-agentic-research-assistant/
 
 # ⚙️ Technology Stack
 
-  Technology          Purpose
-  ------------------- ----------------------------------------
-  **Python 3.12**     Core programming language
-  **LangChain**       LLM application framework
-  **LCEL**            Pipeline composition and orchestration
-  **ChromaDB**        Persistent vector database
-  **Hugging Face**    Sentence Transformer embeddings
-  **Groq**            Large Language Model inference
-  **Tavily**          AI-powered web search
-  **PyPDF**           PDF document processing
-  **python-dotenv**   Environment variable management
+  Technology               Purpose
+  ------------------------ ----------------------------------------
+  **Python 3.12**          Core programming language
+  **LangChain**            LLM application framework
+  **LCEL**                 Pipeline composition and orchestration
+  **ChromaDB**             Persistent vector database
+  **Hugging Face**         Sentence Transformer embeddings
+  **Groq**                 Large Language Model inference
+  **Tavily**               AI-powered web search
+  **PyPDF**                PDF document processing
+  **python-dotenv**        Environment variable management
+  **langchain-openai**     OpenAI-compatible client integrations
+  **OmniRoute (Optional)** Self-hosted local AI proxy gateway
 
 ------------------------------------------------------------------------
 
@@ -526,8 +534,6 @@ persistent Chroma vector database.
 
 Subsequent executions reuse the existing database automatically.
 
-------------------------------------------------------------------------
-
 ## 7. Run the Assistant
 
 ``` bash
@@ -539,6 +545,26 @@ During a session:
 -   Type `exit` to quit.
 -   Type `clear` to reset conversation memory without restarting the
     application.
+
+------------------------------------------------------------------------
+
+## 8. Run via AI Gateway (OmniRoute) [Optional]
+
+To bypass rate limits during testing and enable auto-fallback across multiple API keys:
+
+1. **Spin up local OmniRoute instance** via Docker:
+   ```bash
+   docker run -d -p 20128:20128 -v omniroute-data:/app/data diegosouzapw/omniroute:latest
+   ```
+2. Navigate to the dashboard at `http://localhost:20128` (default login is `admin` / `CHANGEME`) and register your credentials under "Providers".
+3. Open [`config/settings.py`](file:///Users/himanshubhandari/Downloads/RTB/RTB_Project_Impetus/intelligent-agentic-research-assistant/config/settings.py) and change the toggle setting:
+   ```python
+   USE_OMNIROUTE: bool = True
+   ```
+4. Test the proxy connectivity:
+   ```bash
+   PYTHONUNBUFFERED=1 PYTHONPATH=. ./venv/bin/python scratch/test_omniroute.py
+   ```
 
 ------------------------------------------------------------------------
 
@@ -622,6 +648,11 @@ config/settings.py
 
 -   Groq model
 -   Temperature
+
+### AI Gateway (OmniRoute)
+
+-   `USE_OMNIROUTE`: Enable/disable routing requests through the local OmniRoute proxy gateway.
+-   `OMNIROUTE_API_BASE`: Mapped default local proxy URL (`http://localhost:20128/v1`).
 
 ### Web Search
 
@@ -795,44 +826,57 @@ follow-ups, and Tavily result structure/relevance.
   ---------------------------------------------------------------------
   Version                       Description
   ----------------------------- ---------------------------------------
+  **v2.9.6**                    OmniRoute AI Gateway integration, OpenAI-compatible
+                                client proxying (ChatOpenAI), diagnostic test harness,
+                                environment bypass and Pyright warnings resolution.
+
+  **v2.9.5**                    Optimizations & Comparative RAG: document-level source
+                                diversity, min relevance thresholds, relative reference
+                                pronoun resolution, template prompt compression, collection-aware
+                                agent planners, and settings-based evaluator boundaries.
+
   **v2.9.0**                    Intelligent agent planning, dynamic tool
                                 registry, validated tool calls, bounded
                                 multi-step execution, observation-driven
                                 follow-up planning, improved current Web
                                 queries, generic Web search execution, and
-                                grounded answer generation
+                                grounded answer generation.
 
   **v2.8.0**                    Modular agent architecture, agent state,
                                 tool registry, tool runtime, tool execution
                                 adapters, PDF and Web knowledge tools, and
-                                foundation for agentic retrieval
+                                foundation for agentic retrieval.
+
+  **v2.7.0**                    Multi-collection knowledge bases, dynamic collection
+                                discovery, manifest-based index synchronization, and
+                                localized vector stores.
 
   **v2.6.0**                    Bounded in-session conversation memory,
                                 context-aware question rewriting,
                                 follow-up reference resolution,
                                 unresolved-context detection, memory
                                 reset, conversation orchestration, and
-                                pytest validation
+                                pytest validation.
 
   **v2.5.0**                    Adaptive hybrid retrieval, normalized
                                 cross-source candidates,
                                 embedding-based reranking, Top-K
                                 evidence selection, context fusion, and
-                                hybrid responses
+                                hybrid responses.
 
   **v2.4.0**                    Confidence-based retrieval evaluation,
                                 structured response models, citations,
                                 clean layered architecture, and
-                                improved answer generation
+                                improved answer generation.
 
   **v2.3.0**                    Intelligent PDF-first routing with
-                                Tavily web fallback
+                                Tavily web fallback.
 
   **v2.2.1**                    Centralized environment initialization
-                                and startup architecture improvements
+                                and startup architecture improvements.
 
   **v2.2.0**                    Initial stable modular PDF RAG
-                                implementation
+                                implementation.
   ---------------------------------------------------------------------
 
 ------------------------------------------------------------------------
@@ -890,7 +934,7 @@ autonomous research assistant.
 
 ------------------------------------------------------------------------
 
-## 🚀 v2.8.0
+## ✅ v2.8.0
 
 ### Agent Architecture & Tool Calling
 
@@ -925,16 +969,43 @@ autonomous research assistant.
 -   Grounded answer generation with insufficient-evidence handling
 -   Extensible architecture for future tools
 
-## 🎯 v3.0.0
+------------------------------------------------------------------------
+
+## ✅ v2.9.5
+
+### Optimizations & Comparative RAG
+
+-   🏆 Document-level source diversity reranker policies
+-   🎯 Configurable evaluation threshold parameters in settings
+-   🔗 Relative reference pronoun resolution logic (`one`, `former`, `latter`)
+-   ⚡ Prompt instruction token budget reductions (~1500 tokens saved)
+-   📂 Collection-aware agent routing (skip redundant vector searches)
+-   🧹 Obsolete files housekeeping and cleanup (deleted 6 dead files)
+
+------------------------------------------------------------------------
+
+## ✅ v2.9.6
+
+### OmniRoute AI Gateway Integration
+
+-   🌐 Standard OpenAI-compatible gateway routing (`ChatOpenAI`)
+-   🧪 Resolved path namespace 404 bugs via custom base URL configuration
+-   🛠️ Centrally managed toggle (`USE_OMNIROUTE`) and API base configs
+-   📂 Bypass validator credentials with dummy authentication fallbacks
+-   📝 Diagnostic connection testing helper (`scratch/test_omniroute.py`)
+
+------------------------------------------------------------------------
+
+## 🚀 v3.0.0
 
 ### Intelligent Agentic Research Assistant
 
--   Autonomous planning
--   Multi-agent collaboration
--   Research report generation
--   Model Context Protocol (MCP)
--   Long-term memory
--   Intelligent tool ecosystem
+-   Autonomous planning and multi-turn loops
+-   Multi-agent collaboration (Lead Planner, Researcher, Synthesizer)
+-   Automated markdown research report generation
+-   Model Context Protocol (MCP) clients and tool integration
+-   Persistent long-term memory store
+-   Intelligent tool ecosystems
 -   Autonomous research workflows
 
 ------------------------------------------------------------------------
@@ -1047,25 +1118,16 @@ accessible.
 
 # 🚀 What's Next?
 
-v2.9.0 establishes the registry-driven agentic retrieval foundation:
-dynamic tool selection, bounded planning loops, generic tool execution,
-cross-source evidence ranking, and grounded response generation.
+v2.9.6 establishes the self-hosted AI gateway (OmniRoute) routing foundation, building upon the comparative RAG improvements in v2.9.5 and the dynamic registry agent loops in v2.9.0.
 
-Upcoming work includes:
+We are now actively developing the **v3.0.0** architecture, which focuses on:
 
--   More retrieval and research tools
--   Metadata filtering
--   Richer document and knowledge-source support
--   LangGraph workflows where they provide clear architectural value
--   Autonomous research workflows
--   Model Context Protocol (MCP)
--   Continuous evaluation
--   Production deployment
--   Longer-term and persistent memory
+-   **Multi-Agent Collaborative Crew (CrewAI):** Transitioning the single-agent pipeline to cooperative roles: Planner, Researcher, and Synthesis Specialist.
+-   **Autonomous Multi-Turn Workflows:** Generating complete comprehensive markdown research reports exported directly to local files.
+-   **Model Context Protocol (MCP):** Direct integration of standardized MCP clients to interact with local development and filesystem tools.
+-   **Long-Term Memory Stores:** Persisting user preferences, historical topics, and contextual facts using a lightweight vector/semantic database.
 
-The goal is to evolve this repository into a complete
-**production-quality Agentic AI Research Assistant** while documenting
-every architectural decision along the way.
+The goal is to evolve this repository into a complete, production-grade **Autonomous Research Agent** while maintaining clean engineering practices.
 
 ------------------------------------------------------------------------
 
