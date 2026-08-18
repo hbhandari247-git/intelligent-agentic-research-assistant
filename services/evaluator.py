@@ -6,7 +6,11 @@ before answer generation.
 """
 
 from config.settings import (
+    PDF_CONFIDENCE_HIGH,
+    PDF_CONFIDENCE_VERY_HIGH,
     PDF_RETRIEVAL_THRESHOLD,
+    WEB_CONFIDENCE_HIGH,
+    WEB_CONFIDENCE_VERY_HIGH,
     WEB_RETRIEVAL_THRESHOLD,
 )
 from models.confidence import Confidence
@@ -57,10 +61,10 @@ def evaluate_pdf_retrieval(
         valid_distances,
     )
 
-    if best_distance <= 0.90:
+    if best_distance <= PDF_CONFIDENCE_VERY_HIGH:
         confidence = Confidence.VERY_HIGH
 
-    elif best_distance <= 1.05:
+    elif best_distance <= PDF_CONFIDENCE_HIGH:
         confidence = Confidence.HIGH
 
     elif best_distance <= threshold:
@@ -122,10 +126,10 @@ def evaluate_web_retrieval(
         valid_scores,
     )
 
-    if best_score >= 0.90:
+    if best_score >= WEB_CONFIDENCE_VERY_HIGH:
         confidence = Confidence.VERY_HIGH
 
-    elif best_score >= 0.75:
+    elif best_score >= WEB_CONFIDENCE_HIGH:
         confidence = Confidence.HIGH
 
     elif best_score >= threshold:

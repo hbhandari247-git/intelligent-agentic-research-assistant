@@ -96,6 +96,13 @@ PDF_RETRIEVAL_THRESHOLD = 1.25
 
 WEB_RETRIEVAL_THRESHOLD = 0.50
 
+# Confidence evaluation thresholds
+PDF_CONFIDENCE_VERY_HIGH = 0.90
+PDF_CONFIDENCE_HIGH = 1.05
+
+WEB_CONFIDENCE_VERY_HIGH = 0.90
+WEB_CONFIDENCE_HIGH = 0.75
+
 
 # -----------------------------
 # Cross-source Reranking
