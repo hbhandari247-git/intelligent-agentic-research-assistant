@@ -101,6 +101,7 @@ The current implementation provides:
 -   ⚡ **Token Budget Tuning & Prompt Compression:** Compressed planning and generator prompt templates to save ~1,500 instruction tokens per agent loop, and raised chunk size to `1200` to capture richer semantic contexts.
 -   📂 **Collection-Aware Agent Routing:** Exposed selected folder names and document lists to agent planners, allowing the LLM to bypass document searches for external topics and prevent web search pollution for local topics.
 -   🧪 **Robust Workspace Integration:** Added Pyright virtual environment settings (`pyrightconfig.json`) and pytest exclusions (`pytest.ini`) to eliminate workspace import warnings.
+-   🧹 **Codebase Housekeeping & Refactoring:** Deleted 6 legacy, obsolete files (saving 396 lines of dead code) to streamline the directory structure, and moved hardcoded evaluator confidence thresholds into centralized settings.
 
 ### What's New in v2.9.5?
 
@@ -110,7 +111,7 @@ A major enhancement is the **Document-Level Source Diversity** logic in the cros
 
 Additionally, the **Question Rewriter**'s pronoun resolution was expanded to detect relative and comparative reference words. This resolves follow-up queries like *"Which one is larger?"* or *"Compare the former with the latter"* by referencing the conversation history.
 
-Finally, prompts were compressed and token budgets were tuned, and the agent planner was made **Collection-Aware** to prevent redundant tool executions and keep answer contexts clean.
+Finally, prompts were compressed and token budgets were tuned, the agent planner was made **Collection-Aware** to prevent redundant tool executions, and all legacy pre-agent RAG files and static routers were deleted to clean up the codebase. Hardcoded evaluation confidence ranges were also extracted into centralized settings to keep the code fully configuration-driven.
 
 ---
 
