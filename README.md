@@ -102,6 +102,7 @@ The current implementation provides:
 -   📂 **Collection-Aware Agent Routing:** Exposed selected folder names and document lists to agent planners, allowing the LLM to bypass document searches for external topics and prevent web search pollution for local topics.
 -   🧪 **Robust Workspace Integration:** Added Pyright virtual environment settings (`pyrightconfig.json`) and pytest exclusions (`pytest.ini`) to eliminate workspace import warnings.
 -   🧹 **Codebase Housekeeping & Refactoring:** Deleted 6 legacy, obsolete files (saving 396 lines of dead code) to streamline the directory structure, and moved hardcoded evaluator confidence thresholds into centralized settings.
+-   🌐 **OmniRoute AI Gateway Integration:** Added support for the local-first OmniRoute AI proxy gateway, enabling auto-fallback, load balancing across multiple API keys, and prompt token savings via a single configuration toggle.
 
 ### What's New in v2.9.5?
 
@@ -111,7 +112,9 @@ A major enhancement is the **Document-Level Source Diversity** logic in the cros
 
 Additionally, the **Question Rewriter**'s pronoun resolution was expanded to detect relative and comparative reference words. This resolves follow-up queries like *"Which one is larger?"* or *"Compare the former with the latter"* by referencing the conversation history.
 
-Finally, prompts were compressed and token budgets were tuned, the agent planner was made **Collection-Aware** to prevent redundant tool executions, and all legacy pre-agent RAG files and static routers were deleted to clean up the codebase. Hardcoded evaluation confidence ranges were also extracted into centralized settings to keep the code fully configuration-driven.
+Finally, we integrated support for **OmniRoute AI Gateway**. When `USE_OMNIROUTE = True` in configurations, the LLM client dynamically switches to standard `ChatOpenAI` targeting your local OmniRoute instance (running by default at `http://localhost:20128/v1`). This resolves standard 429 rate limit exceeded issues by round-robining requests across multiple registered developer keys and automatically falling back to secondary providers if a key becomes exhausted, keeping your testing sessions active without interruption.
+
+Lastly, prompts were compressed and token budgets were tuned, the agent planner was made **Collection-Aware** to prevent redundant tool executions, and all legacy pre-agent RAG files and static routers were deleted to clean up the codebase. Hardcoded evaluation confidence ranges were also extracted into centralized settings to keep the code fully configuration-driven.
 
 ---
 
