@@ -27,16 +27,12 @@ def create_research_tools(vector_store):
 
         try:
             results = search_pdf_knowledge(vector_store, query)
-            if not results:
+            if not results.candidates:
                 return "No matching local evidence found."
 
             evidence = []
-            for item in results:
-                filename = (
-                    item.metadata.filename
-                    if hasattr(item.metadata, "filename")
-                    else "unknown_document.pdf"
-                )
+            for item in results.candidates:
+                filename = item.citation.title
                 evidence.append(f"Source: {filename}\nContent: {item.content}")
             return "\n\n".join(evidence)
         except Exception as e:  # noqa: BLE001
@@ -49,10 +45,10 @@ def create_research_tools(vector_store):
         Use when the user explicitly requests recent events, today's news, or external context
         that is not expected to be found in the local document base.
         """
-        from services.web_search import search_web_query
+        from services.web_search import search_web as execute_search_web
 
         try:
-            results = search_web_query(query)
+            results = execute_search_web(query)
             if not results:
                 return "No matching web evidence found."
 

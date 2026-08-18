@@ -1,5 +1,6 @@
 import datetime
 import os
+import shutil
 
 from dotenv import load_dotenv
 
@@ -7,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from config.settings import MAX_CONVERSATION_MESSAGES
+from config.settings import CHROMA_DB_PATH, MAX_CONVERSATION_MESSAGES
 from models.collection import Collection
 from services.conversation import ConversationService
 from services.conversation_memory import ConversationMemory
@@ -193,7 +194,13 @@ def main() -> None:
         elif choice == "4":
             print(f"\n🔨 Rebuilding index for collection '{collection.name}'...")
             try:
-                index_manager.build_index(collection.name, force=True)
+                # Force rebuild by deleting the local DB directory and clearing cache
+                db_path = CHROMA_DB_PATH / collection.name
+                if db_path.is_dir():
+                    shutil.rmtree(db_path)
+                if collection.name in index_manager._vector_stores:
+                    del index_manager._vector_stores[collection.name]
+
                 vector_store = index_manager.get_vector_store(collection.name)
                 conversation = ConversationService(
                     vector_store=vector_store, memory=memory
