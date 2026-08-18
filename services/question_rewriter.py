@@ -520,6 +520,16 @@ def _contains_reference_pronoun(
         "that",
         "these",
         "those",
+        "he",
+        "him",
+        "his",
+        "she",
+        "her",
+        "hers",
+        "one",
+        "ones",
+        "former",
+        "latter",
     }
 
     return bool(

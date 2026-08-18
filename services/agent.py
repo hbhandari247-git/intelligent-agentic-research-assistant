@@ -163,6 +163,24 @@ def answer_question(
     if not question:
         return Response.empty()
 
+    import logging
+    import os
+
+    logger = logging.getLogger(__name__)
+    collection_name = None
+    source_files = []
+    try:
+        persist_dir = vector_store._client.get_settings().persist_directory
+        if persist_dir:
+            collection_name = os.path.basename(persist_dir)
+            data_path = os.path.join("data", collection_name)
+            if os.path.isdir(data_path):
+                source_files = sorted(
+                    [f for f in os.listdir(data_path) if not f.startswith(".")]
+                )
+    except (AttributeError, OSError) as e:
+        logger.warning("Could not extract collection metadata: %s", e)
+
     state = AgentState(
         question=question,
     )
@@ -177,6 +195,8 @@ def answer_question(
 
     state.tool_calls = create_tool_calls(
         state.question,
+        collection_name=collection_name,
+        source_files=source_files,
     )
 
     state.tool_calls = _filter_tool_calls(
@@ -229,6 +249,8 @@ def answer_question(
         next_tool_calls = create_follow_up_tool_calls(
             question=state.question,
             tool_results=state.tool_results,
+            collection_name=collection_name,
+            source_files=source_files,
         )
 
         state.tool_calls = _filter_tool_calls(

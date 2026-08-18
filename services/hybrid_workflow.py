@@ -80,6 +80,7 @@ def execute_hybrid_workflow(
             tool_results=(
                 ToolResult(
                     tool=SEARCH_PDF_TOOL,
+                    arguments={"query": question},
                     knowledge=pdf_knowledge,
                 ),
             ),
@@ -100,6 +101,7 @@ def execute_hybrid_workflow(
                 tool_results=(
                     ToolResult(
                         tool=SEARCH_PDF_TOOL,
+                        arguments={"query": question},
                         knowledge=pdf_knowledge,
                     ),
                 ),
@@ -113,6 +115,7 @@ def execute_hybrid_workflow(
             tool_results=(
                 ToolResult(
                     tool=SEARCH_WEB_TOOL,
+                    arguments={"query": question},
                     knowledge=web_knowledge,
                 ),
             ),
@@ -123,10 +126,12 @@ def execute_hybrid_workflow(
         tool_results=(
             ToolResult(
                 tool=SEARCH_PDF_TOOL,
+                arguments={"query": question},
                 knowledge=pdf_knowledge,
             ),
             ToolResult(
                 tool=SEARCH_WEB_TOOL,
+                arguments={"query": question},
                 knowledge=web_knowledge,
             ),
         ),

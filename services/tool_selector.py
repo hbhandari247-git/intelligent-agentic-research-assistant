@@ -577,6 +577,8 @@ def _filter_unnecessary_current_tools(
 
 def select_tool_calls(
     question: str,
+    collection_name: str | None = None,
+    source_files: list[str] | None = None,
 ) -> tuple[ToolCall, ...]:
     """
     Select the minimum set of registered tools
@@ -590,75 +592,29 @@ def select_tool_calls(
 
     catalog = _build_tool_catalog()
 
+    collection_context = ""
+    if collection_name:
+        files_str = (
+            "\n".join(f"- {f}" for f in source_files)
+            if source_files
+            else "- No files listed"
+        )
+        collection_context = f"\nACTIVE DOCUMENT COLLECTION:\n- Collection name: {collection_name}\n- Available local documents:\n{files_str}\n"
+
     prompt = f"""
-You are the planning component of an
-agentic research assistant.
+You are the planning component of an agentic research assistant. Decide which registered tools are required to retrieve evidence for the user's question. Do NOT answer the question.
 
-Your ONLY responsibility is to decide which
-registered tools are required to retrieve
-evidence for the user's question.
-
-Do NOT answer the question.
-
-Do NOT invent tools.
-
-Do NOT assume tools that are not listed.
-
-TOOL CATALOG
-============
-
+TOOL CATALOG:
 {catalog}
-
-ROUTING PRINCIPLES
-==================
-
+{collection_context}
+ROUTING PRINCIPLES:
 1. Select the minimum number of tools needed.
+2. Prefer local tools for information expected to be in the local database or local documents listed above.
+3. Use web/external tools ONLY if the question explicitly asks for current information (e.g., latest, recent, now, future dates like 2025/2026) OR is external/unrelated to the local documents listed above.
+4. Do not return duplicate calls. Make queries specific and self-contained.
 
-2. Prefer local knowledge when the requested
-   information is expected to be contained in
-   the local knowledge base.
-
-3. Use a current/external tool only when:
-   - the user explicitly asks for current,
-     latest, recent, today's, now, etc.; OR
-   - the required information is genuinely
-     external to the local knowledge base.
-
-4. Do NOT add an external/current tool merely
-   for confirmation.
-
-5. A comparison with current technology may
-   require both historical/local evidence and
-   current external evidence.
-
-6. Conversational references have already been
-   resolved before reaching this planner.
-
-7. Every selected tool must be registered.
-
-8. Every selected tool must receive all of its
-   required arguments.
-
-9. Queries must be specific and self-contained.
-
-10. For current-state questions, make the
-    current or external information being
-    requested explicit in the query.
-
-11. For comparisons with current technology,
-    include both the comparison subject and
-    current-state comparison context.
-
-12. Do not return duplicate calls for the same
-    tool and arguments.
-
-OUTPUT FORMAT
-=============
-
-Return ONLY valid JSON.
-
-Use exactly this structure:
-
+OUTPUT FORMAT:
+Return ONLY valid JSON using exactly this structure:
 {{
   "tool_calls": [
     {{
@@ -670,15 +626,7 @@ Use exactly this structure:
   ]
 }}
 
-If no tool is required, return:
-
-{{
-  "tool_calls": []
-}}
-
-USER QUESTION
-=============
-
+USER QUESTION:
 {question}
 """
 
@@ -779,6 +727,8 @@ def _format_observations(
 def select_follow_up_tool_calls(
     question: str,
     tool_results: tuple[ToolResult, ...],
+    collection_name: str | None = None,
+    source_files: list[str] | None = None,
 ) -> tuple[ToolCall, ...]:
     """
     Decide whether additional retrieval is needed.
@@ -803,114 +753,35 @@ def select_follow_up_tool_calls(
         tool_results,
     )
 
+    collection_context = ""
+    if collection_name:
+        files_str = (
+            "\n".join(f"- {f}" for f in source_files)
+            if source_files
+            else "- No files listed"
+        )
+        collection_context = f"\nACTIVE DOCUMENT COLLECTION:\n- Collection name: {collection_name}\n- Available local documents:\n{files_str}\n"
+
     prompt = f"""
-You are the evidence-sufficiency component of
-an agentic research assistant.
+You are the evidence-sufficiency component of an agentic research assistant. Decide whether the retrieved evidence is sufficient to answer the question directly. Do NOT answer the question.
 
-The user asked a question.
-
-One or more retrieval tools have already been
-executed.
-
-Your job is NOT to answer the question.
-
-Your job is to decide whether the retrieved
-evidence is sufficient to answer the user's
-question accurately and directly.
-
-IMPORTANT DISTINCTION
-=====================
-
-"Relevant content" does NOT automatically mean
-"sufficient evidence".
-
-A result may be relevant but incomplete.
-
-For example, retrieved evidence may:
-
-- mention a concept without defining it;
-- state that several items exist without
-  identifying all of them;
-- contain one part of a multi-part question;
-- contain a related fact but not the requested
-  fact;
-- support a comparison subject but not the
-  comparison itself;
-- contain an ambiguous or indirect reference;
-- contain evidence that requires a more precise
-  retrieval query.
-
-Evaluate the actual observation rather than
-assuming that a successful retrieval answered
-the question.
-
-TOOL CATALOG
-============
-
+TOOL CATALOG:
 {catalog}
+{collection_context}
+DECISION RULES:
+1. If the evidence directly and sufficiently supports the answer, return an empty tool_calls list.
+2. Do NOT use current-only/web tools (like search_web) unless the question actually requires current or external information (e.g. latest, recent, now, future dates like 2025/2026) AND the local documents do not contain it.
+3. If the evidence is relevant but incomplete/partial, request ONE additional retrieval tool call. Make the follow-up query more specific to target the missing details.
+4. If another retrieval is unlikely to produce meaningful improvement, return an empty list.
+5. Use only registered tools. Make at most ONE tool call. Never repeat an identical tool call.
 
-DECISION RULES
-==============
-
-1. If the available evidence directly and
-   sufficiently supports the requested answer,
-   return an empty tool_calls list.
-
-2. If the evidence is relevant but incomplete,
-   request one additional retrieval.
-
-3. If the evidence answers only part of a
-   multi-part question, request retrieval for
-   the missing part.
-
-4. If the evidence contains a broad statement
-   but not the specific supporting details
-   needed by the question, refine the query.
-
-5. If another retrieval is unlikely to produce
-   meaningful improvement, return an empty list.
-
-6. Prefer the tool that already demonstrated
-   useful evidence unless another registered
-   tool is clearly required.
-
-7. Use only registered tools.
-
-8. Make at most ONE tool call.
-
-9. Never repeat an identical tool call.
-
-10. The follow-up query must be more specific
-    than the previous query when the previous
-    evidence was incomplete.
-
-11. The follow-up query should target the
-    missing information, not merely repeat the
-    original question.
-
-12. Do not use current-only tools unless the
-    question actually requires current
-    information.
-
-13. Do not search merely to increase the number
-    of citations.
-
-14. Do not treat the existence of a relevant
-    source as proof that the answer is supported.
-
-OUTPUT FORMAT
-=============
-
+OUTPUT FORMAT:
 Return ONLY valid JSON.
-
-If the evidence is sufficient:
-
+If evidence is sufficient:
 {{
   "tool_calls": []
 }}
-
 If another retrieval is justified:
-
 {{
   "tool_calls": [
     {{
@@ -922,14 +793,10 @@ If another retrieval is justified:
   ]
 }}
 
-USER QUESTION
-=============
-
+USER QUESTION:
 {question}
 
-RETRIEVED EVIDENCE
-==================
-
+RETRIEVED EVIDENCE:
 {observations}
 """
 

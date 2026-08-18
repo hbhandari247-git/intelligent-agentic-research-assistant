@@ -42,25 +42,25 @@ TOP_K = 12
 # This is intentionally domain-agnostic.
 RETRIEVAL_CANDIDATE_MULTIPLIER = 3
 
-CHUNK_SIZE = 500
+CHUNK_SIZE = 1200
 
-CHUNK_OVERLAP = 100
+CHUNK_OVERLAP = 250
 
 # Maximum number of retrieved candidates exposed
 # to the follow-up planner.
-FOLLOW_UP_OBSERVATION_TOP_K = 6
+FOLLOW_UP_OBSERVATION_TOP_K = 3
 
 # Maximum characters retained from each candidate
 # when building follow-up planner observations.
-FOLLOW_UP_OBSERVATION_MAX_CHARS = 1500
+FOLLOW_UP_OBSERVATION_MAX_CHARS = 800
 
 # Maximum number of candidates exposed to the
 # final answer generator.
-GENERATION_CONTEXT_TOP_K = 8
+GENERATION_CONTEXT_TOP_K = 5
 
 # Maximum characters retained from an individual
 # candidate in the final generation context.
-GENERATION_CONTEXT_MAX_CHARS = 4000
+GENERATION_CONTEXT_MAX_CHARS = 2500
 
 # -----------------------------
 # Embeddings
@@ -75,8 +75,9 @@ EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 # Fast, higher-quota model used during
 # v3 stabilization.
-MODEL_NAME = "llama-3.1-8b-instant"
+MODEL_NAME = "openai/gpt-oss-120b"
 
+# TEMPERATURE = 0
 TEMPERATURE = 0
 
 
@@ -91,7 +92,7 @@ TAVILY_MAX_RESULTS = 5
 # Retrieval Evaluation
 # -----------------------------
 
-PDF_RETRIEVAL_THRESHOLD = 1.00
+PDF_RETRIEVAL_THRESHOLD = 1.25
 
 WEB_RETRIEVAL_THRESHOLD = 0.50
 
@@ -101,6 +102,8 @@ WEB_RETRIEVAL_THRESHOLD = 0.50
 # -----------------------------
 
 HYBRID_TOP_K = 8
+
+MIN_SOURCE_RELEVANCE = 0.40
 
 
 # -----------------------------

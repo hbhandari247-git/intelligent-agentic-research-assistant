@@ -24,7 +24,7 @@ import re
 from collections import defaultdict
 from itertools import pairwise
 
-from config.settings import HYBRID_TOP_K
+from config.settings import HYBRID_TOP_K, MIN_SOURCE_RELEVANCE
 from models.confidence import Confidence
 from models.ranked_candidate import RankedCandidate
 from models.response import Response
@@ -281,43 +281,43 @@ def _rank_candidates(
     if HYBRID_TOP_K <= 0:
         return []
 
-    candidates_by_source: dict[
-        Source,
+    candidates_by_doc: dict[
+        str,
         list[RankedCandidate],
     ] = defaultdict(list)
 
     for candidate in ranked_candidates:
-        candidates_by_source[candidate.candidate.source].append(candidate)
+        doc_key = candidate.candidate.citation.title
+        candidates_by_doc[doc_key].append(candidate)
 
-    if len(candidates_by_source) <= 1:
+    if len(candidates_by_doc) <= 1:
         return ranked_candidates[:HYBRID_TOP_K]
 
-    selected: list[RankedCandidate] = []
+    diverse_representatives: list[RankedCandidate] = []
 
-    for source_candidates in candidates_by_source.values():
-        selected.append(
-            source_candidates[0],
-        )
+    for doc_candidates in candidates_by_doc.values():
+        top_candidate = doc_candidates[0]
+        if top_candidate.relevance_score >= MIN_SOURCE_RELEVANCE:
+            diverse_representatives.append(top_candidate)
 
-    selected_ids = {id(candidate) for candidate in selected}
+    # Sort diverse representative candidates by score descending
+    diverse_representatives.sort(key=lambda c: c.relevance_score, reverse=True)
+
+    selected_ids = {id(candidate) for candidate in diverse_representatives}
+    remaining_candidates: list[RankedCandidate] = []
 
     for candidate in ranked_candidates:
-        if len(selected) >= HYBRID_TOP_K:
-            break
-
         if id(candidate) in selected_ids:
             continue
+        remaining_candidates.append(candidate)
 
-        selected.append(candidate)
-        selected_ids.add(
-            id(candidate),
-        )
+    # Sort remaining candidates by score descending
+    remaining_candidates.sort(key=lambda c: c.relevance_score, reverse=True)
 
-    return sorted(
-        selected,
-        key=lambda candidate: candidate.relevance_score,
-        reverse=True,
-    )
+    # Place diverse representatives at the front to guarantee top-k representation
+    final_candidates = diverse_representatives + remaining_candidates
+
+    return final_candidates[:HYBRID_TOP_K]
 
 
 def _extract_candidates(
@@ -419,15 +419,15 @@ def _confidence_from_ranked_candidates(
 
     average_top_score = sum(strongest_scores) / len(strongest_scores)
 
-    strong_candidate_count = sum(score >= 0.70 for score in scores)
+    strong_candidate_count = sum(score >= 0.45 for score in scores)
 
-    if best_score >= 0.88 and average_top_score >= 0.78 and strong_candidate_count >= 2:
+    if best_score >= 0.60 and average_top_score >= 0.52 and strong_candidate_count >= 2:
         return Confidence.VERY_HIGH
 
-    if best_score >= 0.80 and average_top_score >= 0.70:
+    if best_score >= 0.48 and average_top_score >= 0.42:
         return Confidence.HIGH
 
-    if best_score >= 0.68 and average_top_score >= 0.58:
+    if best_score >= 0.38 and average_top_score >= 0.32:
         return Confidence.MEDIUM
 
     return Confidence.LOW

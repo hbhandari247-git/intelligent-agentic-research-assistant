@@ -17,6 +17,8 @@ from services.tool_selector import (
 
 def create_tool_calls(
     question: str,
+    collection_name: str | None = None,
+    source_files: list[str] | None = None,
 ) -> tuple[ToolCall, ...]:
     """
     Create initial tool calls from the
@@ -32,12 +34,16 @@ def create_tool_calls(
 
     return select_tool_calls(
         question,
+        collection_name=collection_name,
+        source_files=source_files,
     )
 
 
 def create_follow_up_tool_calls(
     question: str,
     tool_results: tuple[ToolResult, ...],
+    collection_name: str | None = None,
+    source_files: list[str] | None = None,
 ) -> tuple[ToolCall, ...]:
     """
     Create follow-up tool calls based on
@@ -60,4 +66,6 @@ def create_follow_up_tool_calls(
     return select_follow_up_tool_calls(
         question,
         tool_results,
+        collection_name=collection_name,
+        source_files=source_files,
     )

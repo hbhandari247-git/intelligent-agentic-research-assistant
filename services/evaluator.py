@@ -57,10 +57,10 @@ def evaluate_pdf_retrieval(
         valid_distances,
     )
 
-    if best_distance <= 0.60:
+    if best_distance <= 0.90:
         confidence = Confidence.VERY_HIGH
 
-    elif best_distance <= 0.80:
+    elif best_distance <= 1.05:
         confidence = Confidence.HIGH
 
     elif best_distance <= threshold:
@@ -180,5 +180,5 @@ def combine_confidence(
             pdf_confidence,
             web_confidence,
         ),
-        key=confidence_rank.get,
+        key=lambda c: confidence_rank[c],
     )
