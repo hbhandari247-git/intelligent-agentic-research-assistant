@@ -91,6 +91,31 @@ The current implementation provides:
 
 # 🎯 Current Release
 
+## **v2.9.5 -- Optimization and Comparative RAG**
+
+### ✨ Highlights
+
+-   🏆 **Prioritized Document-Level Source Diversity:** Grouped candidate sources by their exact document filename and placed the top representative of each document at the front of the candidate list. This guarantees multi-document representation in the generator context and prevents diverse papers from being discarded.
+-   🎯 **Optimized Relevance Thresholds:** Tuned `MIN_SOURCE_RELEVANCE = 0.40` to allow secondary documents in comparative queries to pass representation filters without being blocked by lexical match drag.
+-   🔗 **Comparative Pronoun Resolution:** Added comparative and relative reference words (`one`, `ones`, `former`, `latter`) to the question rewriter's fast-path pronoun detector to successfully resolve follow-up comparison queries.
+-   ⚡ **Token Budget Tuning & Prompt Compression:** Compressed planning and generator prompt templates to save ~1,500 instruction tokens per agent loop, and raised chunk size to `1200` to capture richer semantic contexts.
+-   📂 **Collection-Aware Agent Routing:** Exposed selected folder names and document lists to agent planners, allowing the LLM to bypass document searches for external topics and prevent web search pollution for local topics.
+-   🧪 **Robust Workspace Integration:** Added Pyright virtual environment settings (`pyrightconfig.json`) and pytest exclusions (`pytest.ini`) to eliminate workspace import warnings.
+
+### What's New in v2.9.5?
+
+v2.9.5 introduces key optimizations, bug fixes, and calibration updates to stabilize the agent before v3 development.
+
+A major enhancement is the **Document-Level Source Diversity** logic in the cross-source reranker. Previously, the reranker grouped candidates by general source type (PDF vs. Web) and sorted all items strictly by raw relevance score before slicing. This caused secondary documents (which typically have slightly lower lexical similarity for multi-concept queries) to be pushed below the top-k threshold and discarded. We now group candidates by individual document filename and place their top representatives at the front of the list, ensuring true multi-document grounding and citations for comparative questions.
+
+Additionally, the **Question Rewriter**'s pronoun resolution was expanded to detect relative and comparative reference words. This resolves follow-up queries like *"Which one is larger?"* or *"Compare the former with the latter"* by referencing the conversation history.
+
+Finally, prompts were compressed and token budgets were tuned, and the agent planner was made **Collection-Aware** to prevent redundant tool executions and keep answer contexts clean.
+
+---
+
+# 📜 Previous Releases
+
 ## **v2.9.0 -- Intelligent Agentic Retrieval**
 
 ### ✨ Highlights
