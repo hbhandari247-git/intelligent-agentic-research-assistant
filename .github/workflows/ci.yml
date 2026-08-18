@@ -1,0 +1,40 @@
+name: Python CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-name: '3.11'
+        cache: 'pip'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest-cov ruff black
+
+    - name: Lint with Ruff
+      run: ruff check .
+
+    - name: Check Formatting with Black
+      run: black --check .
+
+    - name: Run Tests
+      env:
+        # Provide dummy credentials to run mocked tests safely in GitHub runners
+        TAVILY_API_KEY: dummy_key
+        GROQ_API_KEY: dummy_key
+      run: pytest -v
