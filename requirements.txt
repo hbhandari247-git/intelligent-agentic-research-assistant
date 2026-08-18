@@ -20,3 +20,4 @@ langchain-huggingface
 
 pytest==9.1.1
 langchain-openai<0.4.0
+litellm

@@ -101,13 +101,15 @@ def main() -> None:
         print("-" * 42)
         print("1. Start Interactive Q&A Chat Session")
         print("2. Start Autonomous Research & Report Generation (v3.0.0)")
-        print("3. Change Document Collection")
-        print("4. Rebuild Current Collection Index")
-        print("5. Clear Memory")
-        print("6. Exit")
+        print("3. View Past Research Reports Logs (LTM)")
+        print("4. Update Research Style Preferences (LTM)")
+        print("5. Change Document Collection")
+        print("6. Rebuild Current Collection Index")
+        print("7. Clear Conversational Memory")
+        print("8. Exit")
         print("-" * 42)
 
-        choice = input("Select an option (1-6): ").strip()
+        choice = input("Select an option (1-8): ").strip()
 
         if choice == "1":
             print(
@@ -181,6 +183,85 @@ def main() -> None:
                 print(f"\n❌ Research failed: {e}")
 
         elif choice == "3":
+            from services.memory_service import list_past_topics
+
+            past_topics = list_past_topics()
+            if not past_topics:
+                print("\n📂 No past research reports logged in LTM database.")
+                continue
+
+            print("\n📋 Past Research Logs:")
+            for index, (past_topic, timestamp) in enumerate(past_topics, start=1):
+                print(f"{index}. [{timestamp}] {past_topic}")
+
+            select_val = input(
+                "\nEnter log number to display full report (or press Enter to return): "
+            ).strip()
+            if select_val.isdigit():
+                sel_idx = int(select_val)
+                if 1 <= sel_idx <= len(past_topics):
+                    target_topic = past_topics[sel_idx - 1][0]
+                    # Print the database entry
+                    conn_path = os.path.join(CHROMA_DB_PATH.parent, "memory.db")
+                    import sqlite3
+
+                    conn = sqlite3.connect(conn_path)
+                    try:
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            "SELECT report FROM research_history WHERE topic = ?",
+                            (target_topic,),
+                        )
+                        row = cursor.fetchone()
+                        if row:
+                            print("\n==========================================")
+                            print(f"Report: {target_topic}")
+                            print("==========================================\n")
+                            print(row[0])
+                            print("\n==========================================")
+                    finally:
+                        conn.close()
+                else:
+                    print("Invalid index.")
+
+        elif choice == "4":
+            from services.memory_service import get_preference, set_preference
+
+            curr_depth = get_preference("research_depth", "comprehensive")
+            curr_style = get_preference("report_style", "professional technical report")
+
+            print("\n⚙️ Current Preferences:")
+            print(f"- Depth: {curr_depth}")
+            print(f"- Style: {curr_style}")
+
+            print("\nSelect Research Depth:")
+            print("1. comprehensive (detailed multi-stage searches)")
+            print("2. quick overview (short target summaries)")
+            depth_sel = input(
+                "Select depth (1-2, press Enter to keep current): "
+            ).strip()
+            if depth_sel == "1":
+                set_preference("research_depth", "comprehensive")
+            elif depth_sel == "2":
+                set_preference("research_depth", "quick overview")
+
+            print("\nSelect Report Output Style:")
+            print("1. professional technical report")
+            print("2. concise executive summary")
+            print("3. detailed step-by-step tutorial")
+            style_sel = input(
+                "Select style (1-3, press Enter to keep current): "
+            ).strip()
+            if style_sel == "1":
+                set_preference("report_style", "professional technical report")
+            elif style_sel == "2":
+                set_preference("report_style", "concise executive summary")
+            elif style_sel == "3":
+                set_preference("report_style", "detailed step-by-step-tutorial")
+
+            print("\n✅ Preferences updated in LTM database.")
+
+        elif choice == "5":
             try:
                 collection = _select_collection(index_manager)
                 vector_store = index_manager.get_vector_store(collection.name)
@@ -191,7 +272,7 @@ def main() -> None:
             except RuntimeError as error:
                 print(f"\n❌ {error}")
 
-        elif choice == "4":
+        elif choice == "6":
             print(f"\n🔨 Rebuilding index for collection '{collection.name}'...")
             try:
                 # Force rebuild by deleting the local DB directory and clearing cache
@@ -209,15 +290,15 @@ def main() -> None:
             except Exception as e:  # noqa: BLE001
                 print(f"❌ Failed to rebuild index: {e}")
 
-        elif choice == "5":
+        elif choice == "7":
             conversation.clear()
             print("\n🧹 Conversation memory cleared.")
 
-        elif choice == "6":
+        elif choice == "8":
             print("\n👋 Goodbye!")
             break
         else:
-            print("\nInvalid choice. Please enter a number between 1 and 6.")
+            print("\nInvalid choice. Please enter a number between 1 and 8.")
 
 
 if __name__ == "__main__":
