@@ -12,7 +12,9 @@ provider or model details.
 
 import os
 
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 
 from config.settings import (
     MODEL_NAME,
@@ -43,18 +45,18 @@ def _get_groq_api_key() -> str:
     return api_key
 
 
-def _create_llm() -> ChatGroq:
+def _create_llm() -> BaseChatModel:
     """
     Create the application's configured
-    Groq chat model.
+    chat model.
     """
 
     if USE_OMNIROUTE:
-        return ChatGroq(
+        return ChatOpenAI(
             model=MODEL_NAME,
-            api_key=_get_groq_api_key(),
+            openai_api_key=_get_groq_api_key(),
+            openai_api_base=OMNIROUTE_API_BASE,
             temperature=TEMPERATURE,
-            groq_api_base=OMNIROUTE_API_BASE,
         )
 
     return ChatGroq(

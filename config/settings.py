@@ -140,6 +140,6 @@ MAX_TOOL_EXECUTIONS_PER_RUN = 2
 # AI Gateway (OmniRoute)
 # -----------------------------
 
-USE_OMNIROUTE: bool = False
+USE_OMNIROUTE: bool = True
 
 OMNIROUTE_API_BASE = "http://localhost:20128/v1"
