@@ -69,6 +69,51 @@ def _build_tool_catalog() -> str:
 # --------------------------------------------------
 
 
+CURRENT_TERMS = (
+    "current",
+    "currently",
+    "latest",
+    "today",
+    "now",
+    "recent",
+    "recently",
+    "this year",
+    "this month",
+    "this week",
+    "as of",
+)
+
+COMPARISON_TERMS = (
+    "compare",
+    "comparison",
+    "compared",
+    "versus",
+    "vs",
+    "difference",
+    "differences",
+    "better than",
+    "different from",
+)
+
+CURRENT_STATE_TERMS = (
+    "current state",
+    "state of the art",
+    "state-of-the-art",
+    "current technology",
+    "modern technology",
+    "current approaches",
+    "modern approaches",
+    "current models",
+    "modern models",
+    "current methods",
+    "modern methods",
+    "today's",
+    "today",
+    "latest",
+    "currently",
+)
+
+
 def _is_current_question(
     question: str,
 ) -> bool:
@@ -85,21 +130,7 @@ def _is_current_question(
 
     normalized = question.casefold()
 
-    current_terms = (
-        "current",
-        "currently",
-        "latest",
-        "today",
-        "now",
-        "recent",
-        "recently",
-        "this year",
-        "this month",
-        "this week",
-        "as of",
-    )
-
-    return any(term in normalized for term in current_terms)
+    return any(term in normalized for term in CURRENT_TERMS)
 
 
 def _is_comparison_with_current_state(
@@ -116,39 +147,9 @@ def _is_comparison_with_current_state(
 
     normalized = question.casefold()
 
-    comparison_terms = (
-        "compare",
-        "comparison",
-        "compared",
-        "versus",
-        "vs",
-        "difference",
-        "differences",
-        "better than",
-        "different from",
-    )
+    has_comparison = any(term in normalized for term in COMPARISON_TERMS)
 
-    current_state_terms = (
-        "current state",
-        "state of the art",
-        "state-of-the-art",
-        "current technology",
-        "modern technology",
-        "current approaches",
-        "modern approaches",
-        "current models",
-        "modern models",
-        "current methods",
-        "modern methods",
-        "today's",
-        "today",
-        "latest",
-        "currently",
-    )
-
-    has_comparison = any(term in normalized for term in comparison_terms)
-
-    has_current_state = any(term in normalized for term in current_state_terms)
+    has_current_state = any(term in normalized for term in CURRENT_STATE_TERMS)
 
     return has_comparison and has_current_state
 
