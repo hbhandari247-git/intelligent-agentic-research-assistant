@@ -244,7 +244,7 @@ with unsupported model knowledge.
                                  Grounded Generator
                                        │
                                        ▼
-                                    Groq LLM
+                                   LLM Client
                                        │
                                        ▼
                                     Response
@@ -723,7 +723,7 @@ preserving source boundaries and citation metadata.
 
 ## Step 11 --- Grounded Response Generation
 
-The Groq LLM generates an answer using only the fused retrieval context.
+The configured LLM client (direct Groq API or local OmniRoute proxy gateway) generates an answer using only the fused retrieval context.
 
 The generator is instructed not to invent facts or substitute unrelated
 evidence. When an important part of the question cannot be established
