@@ -618,10 +618,9 @@ def build_response(
         question,
     )
 
-    if (
-        "I don't have enough information" in answer
-        or "rate limit has been reached" in answer
-    ):
+    from models.response import NOT_FOUND_MESSAGE
+
+    if answer == NOT_FOUND_MESSAGE or "rate limit has been reached" in answer:
         return Response(
             answer=answer,
             source=Source.NONE,

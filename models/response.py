@@ -8,7 +8,10 @@ from models.citation import Citation
 from models.confidence import Confidence
 from models.source import Source
 
-_NOT_FOUND_MESSAGE = "I couldn't find relevant information " "to answer your question."
+NOT_FOUND_MESSAGE = (
+    "I don't have enough information to answer "
+    "this question based on the available evidence."
+)
 
 
 @dataclass(slots=True)
@@ -38,7 +41,7 @@ class Response:
         """
 
         return cls(
-            answer=_NOT_FOUND_MESSAGE,
+            answer=NOT_FOUND_MESSAGE,
             source=Source.NONE,
             confidence=Confidence.NONE,
             citations=[],

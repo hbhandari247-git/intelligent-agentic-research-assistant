@@ -68,12 +68,10 @@ def generate_answer(
     so a temporary LLM quota problem does not
     terminate the application.
     """
+    from models.response import NOT_FOUND_MESSAGE
 
     if not context.strip():
-        return (
-            "I don't have enough information to answer "
-            "this question based on the available evidence."
-        )
+        return NOT_FOUND_MESSAGE
 
     try:
         answer = generation_chain.invoke(
@@ -84,10 +82,7 @@ def generate_answer(
         ).strip()
 
         if not answer:
-            return (
-                "I don't have enough information to answer "
-                "this question based on the available evidence."
-            )
+            return NOT_FOUND_MESSAGE
 
         return answer
 
