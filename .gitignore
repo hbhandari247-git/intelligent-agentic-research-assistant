@@ -29,3 +29,7 @@ scratch/
 
 # Local SQLite databases
 *.db
+
+# Test coverage reports
+.coverage
+htmlcov/
