@@ -618,6 +618,17 @@ def build_response(
         question,
     )
 
+    if (
+        "I don't have enough information" in answer
+        or "rate limit has been reached" in answer
+    ):
+        return Response(
+            answer=answer,
+            source=Source.NONE,
+            confidence=Confidence.NONE,
+            citations=[],
+        )
+
     return Response(
         answer=answer,
         source=source,
