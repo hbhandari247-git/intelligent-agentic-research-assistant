@@ -26,3 +26,6 @@ db/
 
 # Scratch directory
 scratch/
+
+# Local SQLite databases
+*.db
