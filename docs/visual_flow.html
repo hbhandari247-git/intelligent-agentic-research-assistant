@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Codeflow Visualizer</title>
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #131a26;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glow-purple: rgba(139, 92, 246, 0.2);
+            --glow-blue: rgba(59, 130, 246, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Premium Header styling */
+        header {
+            background: linear-gradient(135deg, #161e2e, #0b0f19);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 1.8rem;
+            background: linear-gradient(to right, #a78bfa, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .toggle-container {
+            display: flex;
+            background: var(--bg-secondary);
+            border: 1px solid var(--glass-border);
+            border-radius: 30px;
+            padding: 0.25rem;
+        }
+
+        .toggle-btn {
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--text-muted);
+            padding: 0.6rem 1.5rem;
+            border-radius: 20px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toggle-btn.active {
+            background: linear-gradient(to right, var(--accent-purple), var(--accent-blue));
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        /* Dashboard Container Layout */
+        .dashboard {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2rem;
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Flow Diagram Section */
+        .flow-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .flow-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.2rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .flow-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--text-muted);
+            transition: all 0.25s ease;
+        }
+
+        .flow-card:hover {
+            transform: translateX(4px);
+            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .flow-card.active {
+            border-color: var(--accent-purple);
+            background: rgba(139, 92, 246, 0.04);
+            box-shadow: 0 4px 20px var(--glow-purple);
+        }
+
+        .flow-card.active::before {
+            background: linear-gradient(to bottom, var(--accent-purple), var(--accent-blue));
+        }
+
+        .flow-card-info h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .flow-card-info p {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        .flow-step-num {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .flow-card.active .flow-step-num {
+            color: var(--accent-purple);
+            transform: scale(1.1);
+        }
+
+        /* Connective Connector Arrows */
+        .flow-connector {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            opacity: 0.5;
+            height: 12px;
+        }
+
+        /* Detail Sidebar Section */
+        .detail-panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .detail-header {
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 1rem;
+        }
+
+        .detail-header h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+
+        .detail-header .badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-purple {
+            background: rgba(139, 92, 246, 0.15);
+            color: #c084fc;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .badge-blue {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .detail-section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--accent-blue);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .detail-description {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #d1d5db;
+        }
+
+        .file-list {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .file-badge {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            padding: 0.4rem 0.6rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.82rem;
+            color: #e5e7eb;
+            transition: all 0.2s ease;
+        }
+
+        .file-badge:hover {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .code-snippet {
+            background: #07090e;
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 1.2rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #34d399;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.5;
+        }
+
+        /* Responsive styling */
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            .detail-panel {
+                position: relative;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🤖 Intelligent Agentic Assistant Flow</h1>
+        <div class="toggle-container">
+            <button class="toggle-btn active" id="btn-rag" onclick="switchMode('rag')">Conversational RAG Mode</button>
+            <button class="toggle-btn" id="btn-crew" onclick="switchMode('crew')">Autonomous Crew Mode</button>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <!-- Dynamic Flowchart Column -->
+        <div class="flow-container" id="flow-wrapper">
+            <!-- Populated via Javascript -->
+        </div>
+
+        <!-- Sticky Detail Column -->
+        <div class="detail-panel">
+            <div class="detail-header">
+                <span class="badge badge-purple" id="detail-badge">RAG Step</span>
+                <h2 id="detail-title">Loading Details...</h2>
+            </div>
+            
+            <div>
+                <h4 class="detail-section-title">Description & Data Trace</h4>
+                <p class="detail-description" id="detail-desc">Click any card on the left to trace the data variables, functions called, and file execution loops.</p>
+            </div>
+
+            <div>
+                <h4 class="detail-section-title">Files Involved</h4>
+                <ul class="file-list" id="detail-files">
+                    <!-- Badges populated dynamically -->
+                </ul>
+            </div>
+
+            <div>
+                <h4 class="detail-section-title">Execution Context / Logic</h4>
+                <div class="code-snippet" id="detail-code">
+                    <!-- Code block -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const flowData = {
+            rag: [
+                {
+                    step: "1",
+                    title: "CLI Initialization & Collection Selection",
+                    summary: "Loads models, discovers local PDF folders, and starts the session.",
+                    badge: "Option 1 Start",
+                    desc: "The app initializes the embedding models and scans document subfolders in /data. If the user selects a directory, the index manager automatically loads or builds the corresponding Chroma DB vector index.",
+                    files: ["app.py", "services/pipeline.py", "services/index_manager.py"],
+                    code: "index_manager = IndexManager()\nselected_collection = index_manager.get_collection(name)\nvector_store = index_manager.get_vector_store(name)"
+                },
+                {
+                    step: "2",
+                    title: "Conversation Context Resolution",
+                    summary: "Resolves pronoun references and checks context availability.",
+                    badge: "Context Prep",
+                    desc: "Checks the query against the memory buffer. If pronoun references (e.g. 'it', 'they', 'former') are detected, the question rewriter synthesizes a standalone query using the chat context. If context cannot be resolved, it skips search and asks the user to clarify.",
+                    files: ["services/conversation.py", "services/question_rewriter.py", "services/conversation_memory.py"],
+                    code: "rewrite_result = rewriter.rewrite(question, memory.messages)\nif not rewrite_result.resolved:\n    return 'Please clarify what you are referring to.'"
+                },
+                {
+                    step: "3",
+                    title: "ReAct Agent Decision & Planning",
+                    summary: "Decides whether to search local PDFs, query web resources, or terminate.",
+                    badge: "Agent Planning",
+                    desc: "The agent receives a dynamic list of tools from the registry. It plans which parameters are required and starts a multi-step execution loop, bounded by max execution limits.",
+                    files: ["services/agent.py", "services/tool_selector.py", "services/tool_registry.py"],
+                    code: "tool_calls = tool_selector.select_tools(standalone_query)\nfor call in tool_calls:\n    observation = tool_executor.execute(call, runtime)"
+                },
+                {
+                    step: "4",
+                    title: "Multi-Source Evidence Retrieval",
+                    summary: "Queries local database stores and Tavily Search engines.",
+                    badge: "Retrieval",
+                    desc: "Retrieves document slices from Chroma DB (via vector store distances) and parses web contents from Tavily. Bounded to 500 characters max per document to fit rate limits.",
+                    files: ["services/retriever.py", "services/web_search.py", "services/tools/pdf_tool.py", "services/tools/web_tool.py"],
+                    code: "docs_with_scores = chroma.similarity_search_with_relevance_scores(query)\nweb_results = tavily_client.search(query, search_depth='advanced')"
+                },
+                {
+                    step: "5",
+                    title: "Evidence Fusion & Semantic Reranking",
+                    summary: "Normalizes candidates and ranks them using embeddings similarity.",
+                    badge: "Context Fusion",
+                    desc: "Groups all results into RetrievalCandidate models. Employs Hugging Face embeddings to compute similarity cosine distances, sorts the outputs, groups by source filename to ensure representation diversity, and constructs the generator context.",
+                    files: ["services/response_builder.py", "services/reranker.py", "services/context_fusion.py"],
+                    code: "candidates = normalize_sources(pdf_docs, web_docs)\nranked_list = rerank_candidates(query, candidates)\nfused_context = fuse_context(ranked_list[:HYBRID_TOP_K])"
+                },
+                {
+                    step: "6",
+                    title: "Grounded Answer Generation & Metadata Override",
+                    summary: "Validates the response structure and intercepts LLM refusals.",
+                    badge: "Answer Output",
+                    desc: "The generator creates the answer from the fused context. If the generator returns NOT_FOUND_MESSAGE (meaning the evidence is insufficient), the response builder intercepts it and overrides metadata fields to clean NONE values.",
+                    files: ["services/generator.py", "models/response.py", "services/response_builder.py"],
+                    code: "answer = llm.generate(fused_context, query)\nif answer == NOT_FOUND_MESSAGE:\n    return Response(answer=answer, source=Source.NONE, confidence=Confidence.NONE, citations=[])"
+                }
+            ],
+            crew: [
+                {
+                    step: "1",
+                    title: "Autonomous Trigger & LTM Preference Lookup",
+                    summary: "Loads past database records and style preferences.",
+                    badge: "Option 2 Start",
+                    desc: "Triggered from CLI. Queries db/memory.db for historical reports matching the topic keywords. Extracts preferred writing tone (concise, technical) and depth metrics.",
+                    files: ["app.py", "services/crew_service.py", "services/memory_service.py"],
+                    code: "past_context = get_past_context(topic)\npreference = get_preference() # concise/technical"
+                },
+                {
+                    step: "2",
+                    title: "MCP Dynamic Tool Loading",
+                    summary: "Handshakes with local servers to register system tools.",
+                    badge: "MCP Setup",
+                    desc: "MCP client boots local subprocess command paths configured in config/mcp_servers.json. Handshakes via stdio JSON-RPC, lists tools, and binds them dynamically as CrewAI tools.",
+                    files: ["services/mcp_client.py", "config/mcp_servers.json"],
+                    code: "client = MCPClient(server_config)\nclient.initialize()\nmcp_tools = client.list_tools() # converted to CrewAI tools"
+                },
+                {
+                    step: "3",
+                    title: "Planner Agent Orchestration",
+                    summary: "Lead Planner drafts a query list.",
+                    badge: "Planning Phase",
+                    desc: "The Planner analyzes the research topic, checks the historical context, and defines up to 3 highly explicit queries, preventing redundant web queries.",
+                    files: ["services/crew_service.py"],
+                    code: "planner_task = Task(\n    description='Define structured search strategy for ' + topic,\n    agent=planner_agent\n)"
+                },
+                {
+                    step: "4",
+                    title: "Specialist Evidence Collection",
+                    summary: "Executes tools while observing strict rate-limit boundaries.",
+                    badge: "Search Phase",
+                    desc: "The specialist executes local Chroma search and web search. Capped at max_iter=3 and observation sizes of 500 characters to prevent Groq rate limits.",
+                    files: ["services/crew_service.py", "services/retriever.py", "services/web_search.py"],
+                    code: "specialist_task = Task(\n    description='Retrieve precise evidence using tools',\n    agent=specialist_agent\n)"
+                },
+                {
+                    step: "5",
+                    title: "Report Synthesis & GROUNDING Verification",
+                    summary: "Synthesizer builds markdown report and runs citation verification.",
+                    badge: "Synthesis Phase",
+                    desc: "The Synthesis agent builds a comprehensive report. Enforces grounding checks ensuring that every claim is footnoted with citation files.",
+                    files: ["services/crew_service.py"],
+                    code: "synthesis_task = Task(\n    description='Compile markdown report with inline citations',\n    agent=synthesis_agent\n)"
+                },
+                {
+                    step: "6",
+                    title: "File Export & SQLite LTM Record Sync",
+                    summary: "Exports report markdown and saves context to LTM database.",
+                    badge: "Output Sync",
+                    desc: "Writes the compiled document to outputs/research_report_<timestamp>.md. Then logs the topic, timestamp, and report text to SQLite tables to support future Planner recall.",
+                    files: ["services/crew_service.py", "services/memory_service.py"],
+                    code: "save_research_report(topic, report_content)\nwith open(f'outputs/report_{ts}.md', 'w') as f:\n    f.write(report_content)"
+                }
+            ]
+        };
+
+        let currentMode = 'rag';
+
+        function switchMode(mode) {
+            currentMode = mode;
+            document.getElementById('btn-rag').classList.toggle('active', mode === 'rag');
+            document.getElementById('btn-crew').classList.toggle('active', mode === 'crew');
+            renderFlow();
+        }
+
+        function selectStep(index) {
+            const steps = flowData[currentMode];
+            const data = steps[index];
+            
+            // Set active class on left card
+            const cards = document.querySelectorAll('.flow-card');
+            cards.forEach((card, idx) => {
+                card.classList.toggle('active', idx === index);
+            });
+
+            // Populate right detail pane
+            document.getElementById('detail-badge').innerText = data.badge;
+            document.getElementById('detail-badge').className = `badge ${currentMode === 'rag' ? 'badge-purple' : 'badge-blue'}`;
+            document.getElementById('detail-title').innerText = data.title;
+            document.getElementById('detail-desc').innerText = data.desc;
+            
+            // Files list
+            const filesWrapper = document.getElementById('detail-files');
+            filesWrapper.innerHTML = '';
+            data.files.forEach(file => {
+                const li = document.createElement('li');
+                li.className = 'file-badge';
+                li.innerText = file;
+                filesWrapper.appendChild(li);
+            });
+
+            // Code snippet
+            document.getElementById('detail-code').innerText = data.code;
+        }
+
+        function renderFlow() {
+            const wrapper = document.getElementById('flow-wrapper');
+            wrapper.innerHTML = '';
+            
+            const title = document.createElement('h2');
+            title.className = 'section-title';
+            title.innerText = currentMode === 'rag' ? '🔄 RAG Conversational Flow Steps' : '🤖 Crew AI Autonomous Workflow Steps';
+            wrapper.appendChild(title);
+
+            const steps = flowData[currentMode];
+            steps.forEach((step, idx) => {
+                // Card div
+                const card = document.createElement('div');
+                card.className = `flow-card ${idx === 0 ? 'active' : ''}`;
+                card.onclick = () => selectStep(idx);
+
+                const info = document.createElement('div');
+                info.className = 'flow-card-info';
+                
+                const h3 = document.createElement('h3');
+                h3.innerText = step.title;
+                info.appendChild(h3);
+
+                const p = document.createElement('p');
+                p.innerText = step.summary;
+                info.appendChild(p);
+
+                card.appendChild(info);
+
+                const num = document.createElement('div');
+                num.className = 'flow-step-num';
+                num.innerText = `0${step.step}`;
+                card.appendChild(num);
+
+                wrapper.appendChild(card);
+
+                // Connector arrow if not last
+                if (idx < steps.length - 1) {
+                    const arrow = document.createElement('div');
+                    arrow.className = 'flow-connector';
+                    arrow.innerText = '↓';
+                    wrapper.appendChild(arrow);
+                }
+            });
+
+            // Select first step by default
+            selectStep(0);
+        }
+
+        // Initial paint
+        renderFlow();
+    </script>
+</body>
+</html>
