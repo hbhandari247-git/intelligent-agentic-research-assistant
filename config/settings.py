@@ -134,3 +134,12 @@ INDEX_MANIFEST_FILENAME = "manifest.json"
 MAX_AGENT_ITERATIONS = 3
 
 MAX_TOOL_EXECUTIONS_PER_RUN = 2
+
+
+# -----------------------------
+# AI Gateway (OmniRoute)
+# -----------------------------
+
+USE_OMNIROUTE = False
+
+OMNIROUTE_API_BASE = "http://localhost:20128/v1"

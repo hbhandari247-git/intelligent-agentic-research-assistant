@@ -16,7 +16,9 @@ from langchain_groq import ChatGroq
 
 from config.settings import (
     MODEL_NAME,
+    OMNIROUTE_API_BASE,
     TEMPERATURE,
+    USE_OMNIROUTE,
 )
 
 
@@ -26,7 +28,7 @@ def _get_groq_api_key() -> str:
 
     Raises:
         ValueError:
-            If GROQ_API_KEY is not configured.
+            If GROQ_API_KEY is not configured and OmniRoute is inactive.
     """
 
     api_key = os.getenv(
@@ -34,7 +36,9 @@ def _get_groq_api_key() -> str:
     )
 
     if not api_key:
-        raise ValueError("GROQ_API_KEY not found in " "environment variables.")
+        if USE_OMNIROUTE:
+            return "omni-route-dummy-key"
+        raise ValueError("GROQ_API_KEY not found in environment variables.")
 
     return api_key
 
@@ -44,6 +48,14 @@ def _create_llm() -> ChatGroq:
     Create the application's configured
     Groq chat model.
     """
+
+    if USE_OMNIROUTE:
+        return ChatGroq(
+            model=MODEL_NAME,
+            api_key=_get_groq_api_key(),
+            temperature=TEMPERATURE,
+            groq_api_base=OMNIROUTE_API_BASE,
+        )
 
     return ChatGroq(
         model=MODEL_NAME,
