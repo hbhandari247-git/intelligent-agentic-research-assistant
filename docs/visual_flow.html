@@ -3,12 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Codeflow Visualizer</title>
+    <title>Interactive Codebase Architecture Map</title>
     <!-- Modern Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     
+    <!-- Load Mermaid.js for Dynamic Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'dark',
+            themeVariables: {
+                background: '#131a26',
+                primaryColor: '#8b5cf6',
+                primaryTextColor: '#f3f4f6',
+                lineColor: '#3b82f6',
+                secondaryColor: '#10b981'
+            }
+        });
+    </script>
+
     <style>
         :root {
             --bg-primary: #0b0f19;
@@ -20,8 +36,9 @@
             --text-muted: #9ca3af;
             --glass-bg: rgba(255, 255, 255, 0.03);
             --glass-border: rgba(255, 255, 255, 0.08);
-            --glow-purple: rgba(139, 92, 246, 0.2);
-            --glow-blue: rgba(59, 130, 246, 0.2);
+            --glow-purple: rgba(139, 92, 246, 0.25);
+            --glow-blue: rgba(59, 130, 246, 0.25);
+            --glow-green: rgba(16, 185, 129, 0.25);
         }
 
         * {
@@ -40,27 +57,29 @@
             overflow-x: hidden;
         }
 
-        /* Premium Header styling */
+        /* Header Navigation */
         header {
             background: linear-gradient(135deg, #161e2e, #0b0f19);
             border-bottom: 1px solid var(--glass-border);
-            padding: 1.5rem 2rem;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         header h1 {
             font-family: 'Outfit', sans-serif;
             font-weight: 800;
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             background: linear-gradient(to right, #a78bfa, #60a5fa);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .toggle-container {
+        .nav-tabs {
             display: flex;
             background: var(--bg-secondary);
             border: 1px solid var(--glass-border);
@@ -68,43 +87,55 @@
             padding: 0.25rem;
         }
 
-        .toggle-btn {
+        .tab-btn {
             border: none;
             outline: none;
             background: transparent;
             color: var(--text-muted);
-            padding: 0.6rem 1.5rem;
+            padding: 0.5rem 1.2rem;
             border-radius: 20px;
             font-family: 'Outfit', sans-serif;
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .toggle-btn.active {
+        .tab-btn.active {
             background: linear-gradient(to right, var(--accent-purple), var(--accent-blue));
             color: white;
             box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
 
-        /* Dashboard Container Layout */
-        .dashboard {
-            flex: 1;
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 2rem;
+        /* Dashboard Main Layout */
+        .container {
+            display: none;
             padding: 2rem;
             max-width: 1600px;
             margin: 0 auto;
             width: 100%;
+            animation: fadeIn 0.4s ease;
         }
 
-        /* Flow Diagram Section */
+        .container.active {
+            display: grid;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 1. Walkthrough Layout */
+        #walkthrough-container {
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2rem;
+        }
+
         .flow-container {
             display: flex;
             flex-direction: column;
-            gap: 1.2rem;
+            gap: 1rem;
         }
 
         .section-title {
@@ -161,19 +192,19 @@
 
         .flow-card-info h3 {
             font-family: 'Outfit', sans-serif;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 600;
             margin-bottom: 0.25rem;
         }
 
         .flow-card-info p {
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
         }
 
         .flow-step-num {
             font-family: 'Outfit', sans-serif;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 800;
             color: rgba(255, 255, 255, 0.1);
             transition: all 0.3s ease;
@@ -184,7 +215,6 @@
             transform: scale(1.1);
         }
 
-        /* Connective Connector Arrows */
         .flow-connector {
             display: flex;
             justify-content: center;
@@ -195,7 +225,7 @@
             height: 12px;
         }
 
-        /* Detail Sidebar Section */
+        /* Detail Side Panel */
         .detail-panel {
             background: var(--bg-secondary);
             border: 1px solid var(--glass-border);
@@ -213,21 +243,23 @@
         .detail-header {
             border-bottom: 1px solid var(--glass-border);
             padding-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .detail-header h2 {
             font-family: 'Outfit', sans-serif;
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 600;
-            margin-bottom: 0.5rem;
             color: white;
         }
 
-        .detail-header .badge {
+        .badge {
             display: inline-block;
             padding: 0.3rem 0.8rem;
             border-radius: 12px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
@@ -247,7 +279,7 @@
 
         .detail-section-title {
             font-family: 'Outfit', sans-serif;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--accent-blue);
@@ -256,7 +288,7 @@
         }
 
         .detail-description {
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             line-height: 1.6;
             color: #d1d5db;
         }
@@ -272,9 +304,9 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--glass-border);
             border-radius: 6px;
-            padding: 0.4rem 0.6rem;
+            padding: 0.35rem 0.55rem;
             font-family: 'Fira Code', monospace;
-            font-size: 0.82rem;
+            font-size: 0.78rem;
             color: #e5e7eb;
             transition: all 0.2s ease;
         }
@@ -288,18 +320,157 @@
             background: #07090e;
             border: 1px solid var(--glass-border);
             border-radius: 8px;
-            padding: 1.2rem;
+            padding: 1rem;
             font-family: 'Fira Code', monospace;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: #34d399;
             overflow-x: auto;
             white-space: pre;
             line-height: 1.5;
         }
 
-        /* Responsive styling */
+        /* 2. Dependency Graph Layout */
+        #graph-container {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        .graph-instructions {
+            background: var(--bg-secondary);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .graph-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .legend-selected { background: var(--accent-purple); box-shadow: 0 0 8px var(--glow-purple); }
+        .legend-dependency { background: var(--accent-blue); box-shadow: 0 0 8px var(--glow-blue); }
+        .legend-dependant { background: var(--accent-green); box-shadow: 0 0 8px var(--glow-green); }
+
+        .graph-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1.2rem;
+        }
+
+        .graph-node {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .graph-node h4 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .graph-node span {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        /* Active Dependency states */
+        .graph-node.node-selected {
+            border-color: var(--accent-purple);
+            background: rgba(139, 92, 246, 0.05);
+            box-shadow: 0 0 15px var(--glow-purple);
+            transform: scale(1.02);
+        }
+
+        .graph-node.node-dependency {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.05);
+            box-shadow: 0 0 15px var(--glow-blue);
+        }
+
+        .graph-node.node-dependant {
+            border-color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.05);
+            box-shadow: 0 0 15px var(--glow-green);
+        }
+
+        .graph-node.node-dimmed {
+            opacity: 0.25;
+            transform: scale(0.98);
+        }
+
+        /* 3. Live Model Diagrams Section */
+        #diagram-container {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        .diagram-viewer {
+            background: var(--bg-secondary);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            min-height: 500px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .diagram-nav {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            justify-content: center;
+        }
+
+        .diagram-tab-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            padding: 0.5rem 1.2rem;
+            border-radius: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            transition: all 0.25s ease;
+        }
+
+        .diagram-tab-btn.active {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        .mermaid {
+            width: 100%;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Responsive */
         @media (max-width: 1024px) {
-            .dashboard {
+            #walkthrough-container {
                 grid-template-columns: 1fr;
             }
             .detail-panel {
@@ -312,49 +483,100 @@
 <body>
 
     <header>
-        <h1>🤖 Intelligent Agentic Assistant Flow</h1>
-        <div class="toggle-container">
-            <button class="toggle-btn active" id="btn-rag" onclick="switchMode('rag')">Conversational RAG Mode</button>
-            <button class="toggle-btn" id="btn-crew" onclick="switchMode('crew')">Autonomous Crew Mode</button>
+        <h1>🤖 Intelligent Research Assistant Model</h1>
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('walkthrough')">Flow Walkthrough</button>
+            <button class="tab-btn" onclick="switchTab('graph')">Dependency Call Graph</button>
+            <button class="tab-btn" onclick="switchTab('diagram')">Architecture Diagrams</button>
         </div>
     </header>
 
-    <div class="dashboard">
-        <!-- Dynamic Flowchart Column -->
-        <div class="flow-container" id="flow-wrapper">
-            <!-- Populated via Javascript -->
+    <!-- Tab 1: Flow Walkthrough -->
+    <div class="container active" id="walkthrough-container">
+        <div class="flow-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <h2 class="section-title" id="walkthrough-title">Walkthrough Steps</h2>
+                <div class="toggle-container" style="background: rgba(255, 255, 255, 0.02)">
+                    <button class="toggle-btn active" id="btn-rag" onclick="switchWalkthroughMode('rag')">Conversational RAG</button>
+                    <button class="toggle-btn" id="btn-crew" onclick="switchWalkthroughMode('crew')">Autonomous Crew</button>
+                </div>
+            </div>
+            <div id="flow-wrapper">
+                <!-- Javascript populated -->
+            </div>
         </div>
 
-        <!-- Sticky Detail Column -->
         <div class="detail-panel">
             <div class="detail-header">
+                <h2 id="detail-title">Loading...</h2>
                 <span class="badge badge-purple" id="detail-badge">RAG Step</span>
-                <h2 id="detail-title">Loading Details...</h2>
             </div>
             
             <div>
                 <h4 class="detail-section-title">Description & Data Trace</h4>
-                <p class="detail-description" id="detail-desc">Click any card on the left to trace the data variables, functions called, and file execution loops.</p>
+                <p class="detail-description" id="detail-desc">Select steps to trace details.</p>
             </div>
 
             <div>
                 <h4 class="detail-section-title">Files Involved</h4>
                 <ul class="file-list" id="detail-files">
-                    <!-- Badges populated dynamically -->
+                    <!-- Badges -->
                 </ul>
             </div>
 
             <div>
                 <h4 class="detail-section-title">Execution Context / Logic</h4>
                 <div class="code-snippet" id="detail-code">
-                    <!-- Code block -->
+                    <!-- Code -->
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Tab 2: Dependency Call Graph -->
+    <div class="container" id="graph-container">
+        <div class="graph-instructions">
+            <div style="flex: 1;">
+                <h3 style="font-family: 'Outfit', sans-serif; margin-bottom: 0.25rem;">Interactive Dependency Map</h3>
+                <p style="font-size: 0.88rem; color: var(--text-muted);">Click any module to highlight its incoming and outgoing code imports dynamically.</p>
+            </div>
+            <div style="display: flex; gap: 1.5rem;">
+                <div class="graph-legend-item">
+                    <div class="legend-color legend-selected"></div>
+                    <span>Active File</span>
+                </div>
+                <div class="graph-legend-item">
+                    <div class="legend-color legend-dependency"></div>
+                    <span>Imports (Depends On)</span>
+                </div>
+                <div class="graph-legend-item">
+                    <div class="legend-color legend-dependant"></div>
+                    <span>Imported By (Used By)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="graph-grid" id="graph-grid-wrapper">
+            <!-- Populated via Javascript -->
+        </div>
+    </div>
+
+    <!-- Tab 3: Architecture Diagrams -->
+    <div class="container" id="diagram-container">
+        <div class="diagram-nav">
+            <button class="diagram-tab-btn active" id="diag-btn-rag" onclick="switchDiagramMode('rag')">Conversational RAG Sequence</button>
+            <button class="diagram-tab-btn" id="diag-btn-crew" onclick="switchDiagramMode('crew')">Autonomous Crew Collaboration</button>
+        </div>
+        <div class="diagram-viewer">
+            <div class="mermaid" id="mermaid-canvas">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+    </div>
+
     <script>
-        const flowData = {
+        // --- Walkthrough Data ---
+        const walkthroughData = {
             rag: [
                 {
                     step: "1",
@@ -469,32 +691,156 @@
             ]
         };
 
-        let currentMode = 'rag';
+        // --- Dependency Call Graph Data ---
+        const dependencies = {
+            "app.py": {
+                desc: "CLI controller. Directs users to Option 1 RAG or Option 2 Crew processes.",
+                dependsOn: ["services/pipeline.py", "services/conversation.py", "services/crew_service.py", "services/memory_service.py"],
+                usedBy: []
+            },
+            "services/pipeline.py": {
+                desc: "Initializes directories, Chroma clients and collection indexes.",
+                dependsOn: ["services/index_manager.py"],
+                usedBy: ["app.py"]
+            },
+            "services/index_manager.py": {
+                desc: "Discovers document collections and indexes them lazily.",
+                dependsOn: ["services/document_discovery.py", "services/document_loader.py", "services/text_splitter.py", "services/vector_store.py"],
+                usedBy: ["services/pipeline.py"]
+            },
+            "services/conversation.py": {
+                desc: "Orchestrates multi-turn RAG. Triggers pronoun rewriter and agent planners.",
+                dependsOn: ["services/question_rewriter.py", "services/agent.py", "services/conversation_memory.py"],
+                usedBy: ["app.py"]
+            },
+            "services/question_rewriter.py": {
+                desc: "Rewrites pronoun queries into standalone search questions.",
+                dependsOn: ["services/llm.py"],
+                usedBy: ["services/conversation.py"]
+            },
+            "services/agent.py": {
+                desc: "Orchestrates ReAct agent loop, tool planning steps and runs ToolExecutor.",
+                dependsOn: ["services/tool_selector.py", "services/tool_executor.py", "services/response_builder.py"],
+                usedBy: ["services/conversation.py"]
+            },
+            "services/response_builder.py": {
+                desc: "Gathers retrieval candidates, reranks, fusses context, and runs Generator.",
+                dependsOn: ["services/reranker.py", "services/context_fusion.py", "services/evaluator.py", "services/generator.py"],
+                usedBy: ["services/agent.py"]
+            },
+            "services/reranker.py": {
+                desc: "Applies Hugging Face embeddings to calculate cosine similarity ranks.",
+                dependsOn: ["services/embeddings.py"],
+                usedBy: ["services/response_builder.py"]
+            },
+            "services/crew_service.py": {
+                desc: "Assembles Planner, Specialist and Synthesizer agents. Injects SQLite memory contexts.",
+                dependsOn: ["services/memory_service.py", "services/mcp_client.py"],
+                usedBy: ["app.py"]
+            },
+            "services/mcp_client.py": {
+                desc: "Connects via JSON-RPC stdio subprocesses to negotiate system tools.",
+                dependsOn: ["config/mcp_servers.json"],
+                usedBy: ["services/crew_service.py"]
+            },
+            "services/memory_service.py": {
+                desc: "Defines SQLite schemas and saves reports/preferences to db/memory.db.",
+                dependsOn: [],
+                usedBy: ["app.py", "services/crew_service.py"]
+            }
+        };
 
-        function switchMode(mode) {
-            currentMode = mode;
+        // --- Mermaid Diagram Strings ---
+        const diagramData = {
+            rag: `
+sequenceDiagram
+    autonumber
+    actor Dev as Developer / CLI
+    participant app as app.py
+    participant conv as services/conversation.py
+    participant rew as services/question_rewriter.py
+    participant agent as services/agent.py
+    participant builder as services/response_builder.py
+    participant gen as services/generator.py
+
+    Dev->>app: Input Q: "What is self-attention?"
+    app->>conv: ask("What is self-attention?")
+    conv->>rew: rewrite("What is self-attention?")
+    rew-->>conv: Standalone Q
+    conv->>agent: answer_question(standalone_q)
+    agent->>agent: Decide Tool selection
+    agent->>builder: build_response(query, retrieved_docs)
+    builder->>gen: generate_answer(fused_context)
+    gen-->>builder: Answer text
+    builder-->>conv: Struct Response
+    conv-->>app: Display final response
+    app-->>Dev: Print to Console
+            `,
+            crew: `
+sequenceDiagram
+    autonumber
+    actor Dev as Developer / CLI
+    participant app as app.py
+    participant crew as services/crew_service.py
+    participant ltm as services/memory_service.py
+    participant mcp as services/mcp_client.py
+    participant crewai as CrewAI Runner
+
+    Dev->>app: Select Option 2: Research "BERT parameters"
+    app->>crew: run_autonomous_research("BERT parameters")
+    crew->>ltm: get_past_context("BERT parameters")
+    ltm-->>crew: Past history context
+    crew->>mcp: load_mcp_tools()
+    mcp-->>crew: File system / Dynamic tools
+    crew->>crewai: Kickoff (Planner + Specialist + Synthesizer)
+    crewai->>crewai: Execute retrieval tools
+    crewai->>crewai: Compile grounding citations
+    crewai-->>crew: Final Markdown text
+    crew->>ltm: save_research_report("BERT parameters", report)
+    crew-->>app: Report path outputs/research_report.md
+    app-->>Dev: Display completion
+            `
+        };
+
+        let activeTab = 'walkthrough';
+        let activeWalkthroughMode = 'rag';
+
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.toLowerCase().includes(tabId));
+            });
+            document.querySelectorAll('.container').forEach(cont => {
+                cont.classList.remove('active');
+            });
+            document.getElementById(`${tabId}-container`).classList.add('active');
+
+            if (tabId === 'diagram') {
+                renderDiagram();
+            }
+        }
+
+        // --- Walkthrough Tab logic ---
+        function switchWalkthroughMode(mode) {
+            activeWalkthroughMode = mode;
             document.getElementById('btn-rag').classList.toggle('active', mode === 'rag');
             document.getElementById('btn-crew').classList.toggle('active', mode === 'crew');
-            renderFlow();
+            renderWalkthrough();
         }
 
         function selectStep(index) {
-            const steps = flowData[currentMode];
+            const steps = walkthroughData[activeWalkthroughMode];
             const data = steps[index];
             
-            // Set active class on left card
-            const cards = document.querySelectorAll('.flow-card');
-            cards.forEach((card, idx) => {
+            document.querySelectorAll('.flow-card').forEach((card, idx) => {
                 card.classList.toggle('active', idx === index);
             });
 
-            // Populate right detail pane
             document.getElementById('detail-badge').innerText = data.badge;
-            document.getElementById('detail-badge').className = `badge ${currentMode === 'rag' ? 'badge-purple' : 'badge-blue'}`;
+            document.getElementById('detail-badge').className = `badge ${activeWalkthroughMode === 'rag' ? 'badge-purple' : 'badge-blue'}`;
             document.getElementById('detail-title').innerText = data.title;
             document.getElementById('detail-desc').innerText = data.desc;
             
-            // Files list
             const filesWrapper = document.getElementById('detail-files');
             filesWrapper.innerHTML = '';
             data.files.forEach(file => {
@@ -504,22 +850,15 @@
                 filesWrapper.appendChild(li);
             });
 
-            // Code snippet
             document.getElementById('detail-code').innerText = data.code;
         }
 
-        function renderFlow() {
+        function renderWalkthrough() {
             const wrapper = document.getElementById('flow-wrapper');
             wrapper.innerHTML = '';
             
-            const title = document.createElement('h2');
-            title.className = 'section-title';
-            title.innerText = currentMode === 'rag' ? '🔄 RAG Conversational Flow Steps' : '🤖 Crew AI Autonomous Workflow Steps';
-            wrapper.appendChild(title);
-
-            const steps = flowData[currentMode];
+            const steps = walkthroughData[activeWalkthroughMode];
             steps.forEach((step, idx) => {
-                // Card div
                 const card = document.createElement('div');
                 card.className = `flow-card ${idx === 0 ? 'active' : ''}`;
                 card.onclick = () => selectStep(idx);
@@ -544,7 +883,6 @@
 
                 wrapper.appendChild(card);
 
-                // Connector arrow if not last
                 if (idx < steps.length - 1) {
                     const arrow = document.createElement('div');
                     arrow.className = 'flow-connector';
@@ -553,12 +891,88 @@
                 }
             });
 
-            // Select first step by default
             selectStep(0);
         }
 
-        // Initial paint
-        renderFlow();
+        // --- Dependency Graph Tab Logic ---
+        function selectGraphNode(nodeName) {
+            const wrapper = document.getElementById('graph-grid-wrapper');
+            const nodes = document.querySelectorAll('.graph-node');
+            
+            if (!nodeName) {
+                nodes.forEach(node => {
+                    node.className = 'graph-node';
+                });
+                return;
+            }
+
+            const target = dependencies[nodeName];
+
+            nodes.forEach(node => {
+                const name = node.querySelector('h4').innerText;
+                if (name === nodeName) {
+                    node.className = 'graph-node node-selected';
+                } else if (target.dependsOn.includes(name)) {
+                    node.className = 'graph-node node-dependency';
+                } else if (target.usedBy.includes(name)) {
+                    node.className = 'graph-node node-dependant';
+                } else {
+                    node.className = 'graph-node node-dimmed';
+                }
+            });
+        }
+
+        function renderGraph() {
+            const wrapper = document.getElementById('graph-grid-wrapper');
+            wrapper.innerHTML = '';
+
+            Object.keys(dependencies).forEach(name => {
+                const dep = dependencies[name];
+                
+                const card = document.createElement('div');
+                card.className = 'graph-node';
+                card.onclick = (e) => {
+                    e.stopPropagation();
+                    selectGraphNode(name);
+                };
+
+                const h4 = document.createElement('h4');
+                h4.innerText = name;
+                card.appendChild(h4);
+
+                const span = document.createElement('span');
+                span.innerText = dep.desc;
+                card.appendChild(span);
+
+                wrapper.appendChild(card);
+            });
+
+            // Click outside grid resets highlight
+            document.getElementById('graph-container').onclick = () => selectGraphNode(null);
+        }
+
+        // --- Diagrams Tab Logic ---
+        let currentDiagramMode = 'rag';
+
+        function switchDiagramMode(mode) {
+            currentDiagramMode = mode;
+            document.getElementById('diag-btn-rag').classList.toggle('active', mode === 'rag');
+            document.getElementById('diag-btn-crew').classList.toggle('active', mode === 'crew');
+            renderDiagram();
+        }
+
+        function renderDiagram() {
+            const container = document.getElementById('mermaid-canvas');
+            container.removeAttribute('data-processed');
+            container.innerHTML = diagramData[currentDiagramMode];
+            mermaid.run({
+                nodes: [container]
+            });
+        }
+
+        // --- Init Boot ---
+        renderWalkthrough();
+        renderGraph();
     </script>
 </body>
 </html>
