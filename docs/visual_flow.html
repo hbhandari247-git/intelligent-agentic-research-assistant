@@ -107,6 +107,35 @@
             box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
 
+        .toggle-container {
+            display: flex;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 0.2rem;
+        }
+
+        .toggle-btn {
+            border: 1px solid transparent;
+            outline: none;
+            background: transparent;
+            color: var(--text-muted);
+            padding: 0.4rem 1rem;
+            border-radius: 6px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .toggle-btn.active {
+            background: rgba(139, 92, 246, 0.15);
+            border-color: rgba(139, 92, 246, 0.4);
+            color: white;
+            box-shadow: 0 0 12px rgba(139, 92, 246, 0.15);
+        }
+
         /* Dashboard Main Layout */
         .container {
             display: none;
@@ -496,7 +525,7 @@
         <div class="flow-container">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                 <h2 class="section-title" id="walkthrough-title">Walkthrough Steps</h2>
-                <div class="toggle-container" style="background: rgba(255, 255, 255, 0.02)">
+                <div class="toggle-container">
                     <button class="toggle-btn active" id="btn-rag" onclick="switchWalkthroughMode('rag')">Conversational RAG</button>
                     <button class="toggle-btn" id="btn-crew" onclick="switchWalkthroughMode('crew')">Autonomous Crew</button>
                 </div>
