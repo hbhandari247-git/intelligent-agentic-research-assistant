@@ -66,7 +66,7 @@ GENERATION_CONTEXT_MAX_CHARS = 2500
 # Embeddings
 # -----------------------------
 
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 
 
 # -----------------------------
