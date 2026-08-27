@@ -33,3 +33,6 @@ scratch/
 # Test coverage reports
 .coverage
 htmlcov/
+
+# Local presentation study guides
+study_guides/
