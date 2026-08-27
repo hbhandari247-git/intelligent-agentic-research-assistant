@@ -56,3 +56,33 @@ def test_answer_question_loop(mock_build, mock_execute, mock_create, mock_follow
 
     assert isinstance(args[1], ToolRuntime)
     mock_build.assert_called_once()
+
+
+def test_build_current_query_retains_historical_years():
+    """
+    Verify that _build_current_query retains specific historical years
+    and only appends the current year if no year is present.
+    """
+    from services.tool_selector import _build_current_query
+    from datetime import datetime, timezone
+
+    current_year = str(datetime.now(timezone.utc).year)
+
+    # 1. Query with 2011 (historical) - should NOT append current year
+    q1 = "Who won Cricket world cup 2011?"
+    res1 = _build_current_query(q1)
+    assert "2011" in res1
+    assert current_year not in res1
+    assert res1 == "Who won Cricket world cup 2011?"
+
+    # 2. Query with 1999 (historical) - should NOT append current year
+    q2 = "Who won the 1999 rugby cup?"
+    res2 = _build_current_query(q2)
+    assert "1999" in res2
+    assert current_year not in res2
+
+    # 3. Query without year - should append current year
+    q3 = "Who is the CEO of Apple?"
+    res3 = _build_current_query(q3)
+    assert res3.endswith(current_year)
+

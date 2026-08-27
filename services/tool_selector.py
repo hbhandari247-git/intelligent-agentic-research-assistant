@@ -14,6 +14,7 @@ the user's question has been sufficiently answered.
 """
 
 import json
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -187,6 +188,10 @@ def _build_current_query(
         )
 
     if str(year) in normalized:
+        return normalized
+
+    # Do not append the current year if a specific 4-digit year (e.g. 1900-2099) is already present
+    if re.search(r"\b(19\d{2}|20\d{2})\b", normalized):
         return normalized
 
     return f"{normalized} {year}"
