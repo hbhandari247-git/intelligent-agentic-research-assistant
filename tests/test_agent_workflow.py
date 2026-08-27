@@ -63,8 +63,9 @@ def test_build_current_query_retains_historical_years():
     Verify that _build_current_query retains specific historical years
     and only appends the current year if no year is present.
     """
-    from services.tool_selector import _build_current_query
     from datetime import datetime, timezone
+
+    from services.tool_selector import _build_current_query
 
     current_year = str(datetime.now(timezone.utc).year)
 
@@ -92,5 +93,3 @@ def test_build_current_query_retains_historical_years():
     assert "2022" in res4
     assert current_year not in res4
     assert res4 == "2022 CWC winner"
-
-
