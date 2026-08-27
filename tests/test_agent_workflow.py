@@ -86,3 +86,11 @@ def test_build_current_query_retains_historical_years():
     res3 = _build_current_query(q3)
     assert res3.endswith(current_year)
 
+    # 4. Query starting with a year - should NOT append current year
+    q4 = "2022 CWC winner"
+    res4 = _build_current_query(q4)
+    assert "2022" in res4
+    assert current_year not in res4
+    assert res4 == "2022 CWC winner"
+
+
