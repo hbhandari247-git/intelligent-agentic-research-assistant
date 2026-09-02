@@ -1,26 +1,35 @@
 # 🚀 Fresh Laptop Setup Guide: Intelligent Agentic Research Assistant
 
-This guide walks you through setting up, configuring, and running the **Intelligent Agentic Research Assistant** from scratch on a clean/fresh machine (macOS, Linux, or Windows).
+This guide walks you through setting up, configuring, and running the **Intelligent Agentic Research Assistant** from scratch on a clean/fresh machine (macOS, Linux, or Windows), including local **Docker Desktop** and **OmniRoute AI Gateway** integration.
 
 ---
 
 ## 📋 Table of Contents
 1. [System Prerequisites](#1-system-prerequisites)
+   - [Install Git & Python](#install-git--python)
+   - [Install Docker Desktop](#install-docker-desktop)
 2. [Get Your API Keys](#2-get-your-api-keys)
 3. [Clone and Setup Workspace](#3-clone-and-setup-workspace)
 4. [Python Environment & Dependencies](#4-python-environment--dependencies)
 5. [Configure Environment Variables (`.env`)](#5-configure-environment-variables-env)
-6. [Configure LLM Provider & Routing (`config/settings.py`)](#6-configure-llm-provider--routing-configsettingspy)
-7. [Running the Application](#7-running-the-application)
-8. [Running Automated Tests](#8-running-automated-tests)
-9. [Project Directory Structure](#9-project-directory-structure)
-10. [Troubleshooting & FAQs](#10-troubleshooting--faqs)
+6. [OmniRoute AI Gateway Setup (Docker)](#6-omniroute-ai-gateway-setup-docker)
+   - [Pull & Start OmniRoute Container](#step-61-pull--start-the-omniroute-docker-container)
+   - [Access Dashboard & Register Providers](#step-62-access-dashboard--configure-providers)
+   - [Verify Proxy Connectivity](#step-63-test-omniroute-proxy-connectivity)
+   - [Useful Docker Management Commands](#step-64-useful-docker-management-commands)
+7. [Configure LLM Provider & Routing (`config/settings.py`)](#7-configure-llm-provider--routing-configsettingspy)
+8. [Running the Application](#8-running-the-application)
+9. [Running Automated Tests](#9-running-automated-tests)
+10. [Project Directory Structure](#10-project-directory-structure)
+11. [Troubleshooting & FAQs](#11-troubleshooting--faqs)
 
 ---
 
 ## 1. System Prerequisites
 
-Ensure your new machine has the following tools installed:
+### Install Git & Python
+
+Ensure your new machine has the following foundational tools installed:
 
 - **Git**: [git-scm.com](https://git-scm.com/downloads)
   ```bash
@@ -32,7 +41,49 @@ Ensure your new machine has the following tools installed:
   # or on Windows:
   python --version
   ```
-- **(Optional) Docker Desktop**: [docker.com](https://www.docker.com/products/docker-desktop/) *(Only needed if you run the local OmniRoute AI proxy gateway container).*
+
+---
+
+### Install Docker Desktop
+
+Docker is required if you want to run the local **OmniRoute AI Gateway** proxy container to manage LLM rate limits, automatic retries, and multi-key load balancing.
+
+* **macOS:**
+  1. Download the installer for Apple Silicon (M1/M2/M3/M4) or Intel from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/).
+  2. Or install via Homebrew:
+     ```bash
+     brew install --cask docker
+     ```
+  3. Open the **Docker Desktop** application and complete the initial setup.
+
+* **Windows:**
+  > ⚠️ **CRITICAL FOR WINDOWS:** You **must** install WSL 2 (Windows Subsystem for Linux) and ensure Hardware Virtualization is enabled in your BIOS. If WSL 2 is missing, Docker Desktop will fail to start and throw a **Virtualization Error** (*"Hardware assisted virtualization and data execution protection must be enabled in the BIOS"* or *"WSL 2 installation is incomplete"*).
+
+  1. **Install WSL 2:** Open **PowerShell as Administrator** and run:
+     ```powershell
+     wsl --install
+     wsl --update
+     ```
+  2. **Restart your laptop** when prompted by Windows to finalize the WSL 2 installation.
+  3. **Verify Virtualization is Enabled:** Open **Task Manager** (`Ctrl + Shift + Esc`) $\rightarrow$ Click **Performance** tab $\rightarrow$ Click **CPU** $\rightarrow$ Verify **Virtualization: Enabled** is displayed in the bottom-right corner. *(If disabled, enable Intel VT-x / AMD-V in your computer's BIOS/UEFI settings).*
+  4. **Download & Install Docker Desktop:** Download the Windows installer from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) and run the installer.
+  5. **Ensure WSL 2 Backend is Active:** In Docker Desktop $\rightarrow$ **Settings** (gear icon) $\rightarrow$ **General** $\rightarrow$ Ensure **"Use the WSL 2 based engine"** is checked.
+  6. Verify the Docker whale icon appears running in your taskbar system tray.
+
+* **Linux (Ubuntu / Debian):**
+  ```bash
+  sudo apt update
+  sudo apt install -y docker.io docker-compose
+  sudo systemctl start docker
+  sudo systemctl enable docker
+  sudo usermod -aG docker $USER
+  ```
+
+* **Verify Docker is Running:**
+  ```bash
+  docker --version
+  docker ps
+  ```
 
 ---
 
@@ -121,22 +172,88 @@ TAVILY_API_KEY=tvly-your_actual_tavily_api_key_here
 
 ---
 
-## 6. Configure LLM Provider & Routing (`config/settings.py`)
+## 6. OmniRoute AI Gateway Setup (Docker)
 
-Open `config/settings.py` to inspect or toggle between **Direct Groq Cloud Mode** and **Local OmniRoute Gateway Mode**:
+**OmniRoute** is an AI proxy gateway that runs locally to handle automatic model routing, rate-limit bypassing, request logging, and multi-provider failover.
+
+### Step 6.1: Pull & Start the OmniRoute Docker Container
+
+Make sure **Docker Desktop** is running, then execute:
+
+```bash
+docker run -d \
+  -p 20128:20128 \
+  -v omniroute-data:/app/data \
+  --name omniroute \
+  --restart unless-stopped \
+  diegosouzapw/omniroute:latest
+```
+
+* **Image:** `diegosouzapw/omniroute:latest`
+* **Port Mapping:** `-p 20128:20128` (Exposes the dashboard & OpenAI-compatible proxy API on port `20128`)
+* **Data Volume:** `-v omniroute-data:/app/data` (Persists your credentials and routes across container restarts)
+* **Container Name:** `--name omniroute`
+
+---
+
+### Step 6.2: Access Dashboard & Configure Providers
+
+1. Open your web browser and navigate to:
+   👉 **`http://localhost:20128`**
+2. Log in using the default administrator credentials:
+   * **Username:** `admin`
+   * **Password:** `CHANGEME`
+3. *(Recommended)* Change your default password under Settings / Security.
+4. Go to **Providers** in the sidebar:
+   * Click **Add Provider** $\rightarrow$ Select **Groq** (or OpenAI / Anthropic).
+   * Paste your `GROQ_API_KEY` (`gsk_...`).
+   * Save the provider.
+5. In **Models / Routes**:
+   * Ensure model aliases (e.g. `openai/gpt-oss-120b` or `llama-3.3-70b-versatile`) are mapped to your active Groq credentials.
+
+---
+
+### Step 6.3: Test OmniRoute Proxy Connectivity
+
+Run the included verification script to ensure your local Python application can communicate with OmniRoute on port `20128`:
+
+```bash
+PYTHONUNBUFFERED=1 PYTHONPATH=. ./venv/bin/python scratch/test_omniroute.py
+```
+
+If configured properly, it will print a successful model generation response!
+
+---
+
+### Step 6.4: Useful Docker Management Commands
+
+| Action | Command |
+| :--- | :--- |
+| **Check container status** | `docker ps -a --filter name=omniroute` |
+| **View live logs** | `docker logs -f omniroute` |
+| **Stop container** | `docker stop omniroute` |
+| **Start stopped container** | `docker start omniroute` |
+| **Restart container** | `docker restart omniroute` |
+
+---
+
+## 7. Configure LLM Provider & Routing (`config/settings.py`)
+
+Open `config/settings.py` to toggle between **Direct Groq Cloud Mode** and **Local OmniRoute Gateway Mode**:
 
 ```python
 # ============================================================
-# Mode A: Direct Groq Cloud (Standard / Default for Fresh Machines)
+# Mode A: Direct Groq Cloud (No Docker required)
 # ============================================================
 USE_OMNIROUTE = False
 MODEL_NAME = "llama-3.3-70b-versatile"  # or "llama3-8b-8192"
 
 # ============================================================
-# Mode B: Local OmniRoute Gateway (When Docker container is running)
+# Mode B: Local OmniRoute Gateway (Requires Docker container running)
 # ============================================================
 USE_OMNIROUTE = True
 MODEL_NAME = "openai/gpt-oss-120b"
+OMNIROUTE_API_BASE = "http://localhost:20128/v1"
 ```
 
 * **Embedding Model Setting:** 
@@ -147,7 +264,7 @@ MODEL_NAME = "openai/gpt-oss-120b"
 
 ---
 
-## 7. Running the Application
+## 8. Running the Application
 
 Make sure your virtual environment is active (`source venv/bin/activate`), then start the application:
 
@@ -204,7 +321,7 @@ python app.py
 
 ---
 
-## 8. Running Automated Tests
+## 9. Running Automated Tests
 
 Run the full pytest suite to verify all 25 unit tests pass on your machine:
 
@@ -224,7 +341,7 @@ pytest tests/test_agent_workflow.py -v
 
 ---
 
-## 9. Project Directory Structure
+## 10. Project Directory Structure
 
 ```text
 intelligent-agentic-research-assistant/
@@ -257,7 +374,7 @@ intelligent-agentic-research-assistant/
 
 ---
 
-## 10. Troubleshooting & FAQs
+## 11. Troubleshooting & FAQs
 
 ### Q1: Warning: "You are sending unauthenticated requests to the HF Hub"
 * **Explanation:** Hugging Face issues a mild warning when downloading open weights anonymously.
@@ -269,18 +386,38 @@ intelligent-agentic-research-assistant/
 * **Explanation:** `config/settings.py` has `USE_OMNIROUTE = True`, but the local Docker container is not running on your new laptop.
 * **Fix:** Either:
   1. Open `config/settings.py` and set `USE_OMNIROUTE = False` to call Groq directly over the cloud.
-  2. Or start your local OmniRoute docker container on port `20128`.
+  2. Or start your local OmniRoute docker container on port `20128` (`docker start omniroute`).
 
 ---
 
-### Q3: How do I force re-index after adding new PDFs?
+### Q3: Port 20128 is already allocated
+* **Explanation:** Another service or an old OmniRoute instance is using port 20128.
+* **Fix:** Check running containers with `docker ps` and stop the conflicting container with `docker stop <container_id>`.
+
+---
+
+### Q4: How do I force re-index after adding new PDFs?
 * **Fix:** Launch `python app.py` and choose **Option 6 (Rebuild Current Collection Index)**. Alternatively, you can delete the corresponding folder inside `db/` (e.g. `rm -rf db/research_vector_store`) and restart `app.py`.
 
 ---
 
-### Q4: Pytest shows warnings for CrewAI / function calling
+### Q5: Pytest shows warnings for CrewAI / function calling
 * **Explanation:** CrewAI internal deprecation warnings for future version upgrades.
 * **Fix:** These warnings are harmless and can be ignored. All tests pass with exit code `0`.
+
+---
+
+### Q6: Windows Docker Error: "Virtualization error" / "WSL 2 installation is incomplete"
+* **Explanation:** Occurs on Windows when Docker Desktop cannot find a functioning WSL 2 Linux kernel or if CPU hardware virtualization is disabled in the BIOS.
+* **Fix:**
+  1. Open PowerShell as Administrator and run:
+     ```powershell
+     wsl --install
+     wsl --update
+     wsl --set-default-version 2
+     ```
+  2. Reboot your computer.
+  3. If the error persists, enter your laptop's BIOS/UEFI on reboot (usually `F2`, `F10`, or `Del`) and enable **Intel Virtualization Technology (VT-x)** or **AMD-V (SVM Mode)**.
 
 ---
 
